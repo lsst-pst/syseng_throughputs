@@ -1,3 +1,5 @@
+setupRequired(sconsUtils)
+setupRequired(base)
 setupRequired(sims_photUtils)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
