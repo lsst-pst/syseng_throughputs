@@ -1,0 +1,19 @@
+# Creation date: 09 July 2015
+# Contact: Chuck Claver - cclaver@lsst.org
+#
+# This file contains the estimated losses on the LSST Camera lens 3 at surface 2 due to  contaminants.
+# Values have been taken directly from the spreadsheet LCA-18 row 31.
+#
+# Specificaton & expected performance cases based on surface cleanliness level 500 according to 
+# Tribble's modified MIL-STD-1246C; no further degradation assumed (A. Rasmussen, SLAC).  Degradation
+# from factory acceptance test to when the lens/filter is at SLAC under envionmental control is included 
+# in the base losses for contamination).
+#
+# LSST DocuShare Reference Document: Document-17503
+# LSST DocuShare Reference Document: Document-17520
+# 
+# The value is fractional throughput
+#
+# wavlength(nm) value
+300		0.9900
+1100		0.9900

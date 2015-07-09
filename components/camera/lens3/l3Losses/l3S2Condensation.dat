@@ -1,0 +1,15 @@
+# Creation date: 09 July 2015
+# Contact: Chuck Claver - cclaver@lsst.org
+#
+# This file contains the estimated losses on the LSST Camera lens 3 at surface 2 due to condensation of contaminants.
+# Values have been taken directly from the spreadsheet LCA-18 row 32.
+#
+# Values here are placeholders for water and other volatiles.
+#
+# LSST DocuShare Reference Document: Document-8757
+# 
+# The value is fractional throughput
+#
+# wavlength(nm) value
+300		0.9970
+1100		0.9970

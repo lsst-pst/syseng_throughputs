@@ -1,0 +1,18 @@
+# Creation date: 09 July 2015
+# Contact: Chuck Claver - cclaver@lsst.org
+#
+# This file contains the estimated losses on the LSST Camera lens 3 at surface 1 due to  contaminants.
+# Values have been taken directly from the spreadsheet LCA-18 row 29.
+#
+# Assumes minimum PAC of 0.15% (per L1-L2 contract) and a cleaning period of 7 days in class 100,000 equivalent
+# environment (mission averaged). Degradation from factory acceptance test to when the lens/filter is at SLAC
+# under envionmental control is included in the base losses for contamination).
+#
+# LSST DocuShare Reference Document: Document-17503
+# LSST DocuShare Reference Document: Document-17520
+# 
+# The value is fractional throughput
+#
+# wavlength(nm) value
+300		0.9982
+1100		0.9982
