@@ -1,0 +1,17 @@
+# Creation date: 09 July 2015
+# Contact: Chuck Claver - cclaver@lsst.org
+#
+# This file contains the estimated losses on the LSST Camera filter at surface 2 due to condensation of contaminants.
+# Values have been taken directly from the spreadsheet LCA-18 row 39.
+#
+# Placeholder values here correspond to increasing outer layer thicknesses (H2O) by 2nm (theoretical) 
+# and 3nm (specification) over conditions at which filters were calibrated at the vendor. We compute a 
+# degradation of 0.05% per nm of H2O on one side of the multilayer filter. (A. Rasmussen, SLAC) 
+#
+# LSST DocuShare Reference Document: Document-8757
+# 
+# The value is fractional throughput
+#
+# wavlength(nm) value
+300		0.9985
+1100		0.9985
