@@ -139,7 +139,7 @@ if __name__ == '__main__':
     redshifts['galaxies'] = np.array([0.5, 1.0], 'float')
     redshifts['quasar'] = np.array([1.0, 1.5, 2.5], 'float')
     redshifts['sn'] = np.array([0.3, 0.8, 1.2, 1.5], 'float')
-    redshifts['photoZ_outliers'] = np.array([0, 0.2, 1.8], 'float')
+    redshifts['photoZ_outliers'] = np.array([0, 0.2, 1.0], 'float')
     seds, sedlists = su.makeRedshiftedSeds(seds, sedlists, redshifts)
     for s in seds:
         seds[s].flambdaTofnu()
