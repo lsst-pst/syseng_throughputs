@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
+import lsst.utils
 from lsst.sims.photUtils import Bandpass
 
 # Input components:
@@ -19,11 +20,13 @@ from lsst.sims.photUtils import Bandpass
 def setDefaultDirs(rootDir=None):
     """
     Returns a dictionary with the default directory locations of each component of the system throughput.
+    The default value for each component will mirror the expected values in the syseng_throughputs repository, with
+     the defaultDirs['detector'] value pointing to the directory common to all vendors (thus would build a generic detector using the minimum values).
     """
     # Set SYSENG_THROUGHPUTS_DIR to the root dir for syseng_throughputs ('setup syseng_throughputs' will do this automatically)
     defaultDirs = {}
     if rootDir is None:
-        rootDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
+        rootDir = lsst.utils.getPackageDir('syseng_throughputs')
     defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector')
     for lens in ('lens1', 'lens2', 'lens3'):
         defaultDirs[lens] = os.path.join(rootDir, 'components/camera', lens)
@@ -38,6 +41,8 @@ def buildVendorDetector(vendorDir, addLosses=True):
     """
     Assumes there is a file *QE.dat and *Losses.dat to represent the QE response and the Losses.
     Returns a Bandpass object.
+    If addLosses is Frue, the QE curve is multiplied by the losses in the *Losses.dat files.
+    If addLosses is False, the QE curve does not have any losses included.
     """
     # Read the QE file.
     qefile = glob(os.path.join(vendorDir, '*QE.dat'))
@@ -59,26 +64,41 @@ def buildGenericDetector(detectorDir, addLosses=True):
     """
     Combine detector throughputs from multiple vendors, using the minimum value of QE*losses at each wavelength.
     Returns a bandpass object.
+    If 'detectorDir' contains subdirectories, then this method will read the vendor curves in each subdirectory
+      (calling buildVendorDetector) for each directory and combine the results so that the resulting response is the MINIMUM
+      value at each wavelength.
+    If 'detectorDir' is an actual vendor subdirectory containing a *QE.dat throughput curve and no subdirectories, then
+      buildVendorDetector will be called directly and the bandpass object returned will corresond to the actual value from that vendor.
+    The value of addLosses is passed to buildVendorDetector.
     """
     tmp = os.listdir(detectorDir)
     vendorDirs = []
     for t in tmp:
         if os.path.isdir(os.path.join(detectorDir, t)):
             vendorDirs.append(os.path.join(detectorDir, t))
-    #print "Using data from detector vendors: ", vendorDirs
-    sbAll = []
-    for vendorDir in vendorDirs:
-        qe = buildVendorDetector(vendorDir, addLosses=addLosses)
-        sbAll.append(qe.sb)
-    wavelen = qe.wavelen
-    sbMin = (np.array(sbAll)).min(axis=0)
-    qe.setBandpass(wavelen, sbMin)
+    if len(vendorDirs) == 0:
+        # If there were no subdirectories, this could be the actual vendor.
+        # Provide a shortcut so that "buildHardwareAndSystem" can operate on a per-vendor basis.
+        qefile = glob(os.path.join(detectorDir, '*QE.dat'))
+        if len(qefile) == 1:
+            print 'Using %s as the root directory for a single vendor' %(detectorDir)
+            qe = buildVendorDetector(detectorDir, addLosses=addLosses)
+    else:
+        # There are subdirectories; we should take the minimum value of all QE curves.
+        sbAll = []
+        for vendorDir in vendorDirs:
+            qe = buildVendorDetector(vendorDir, addLosses=addLosses)
+            sbAll.append(qe.sb)
+        wavelen = qe.wavelen
+        sbMin = (np.array(sbAll)).min(axis=0)
+        qe.setBandpass(wavelen, sbMin)
     return qe
 
 def buildFilters(filterDir, addLosses=True):
     """
-    Assumes there are files [filtername]-bandResponse.dat, together with a filterLosses subdirectory containing loss files.
+    Assumes there are files [filtername]-bandResponse.dat, together with a 'filterLosses' subdirectory containing loss files.
     Returns a dictionary (keyed by filter name) of the bandpasses for each filter.
+    If addLosses is True, the filter throughput curves are multiplied by the loss files. 
     """
     # Read the filter files.
     filterfiles = glob(os.path.join(filterDir, '*-bandResponse.dat'))
@@ -98,6 +118,10 @@ def buildFilters(filterDir, addLosses=True):
     return filters
 
 def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
+    """
+    Method brought from Chuck Claver's makeLens*.ipynb notebook. Smoothes the wavelength response
+    of the borosilicate glass and returns a smoothed throughput curve.
+    """
     # y = throughput for lenses
     try:
         window_size = np.abs(np.int(window_size))
@@ -122,8 +146,10 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
 
 def buildLens(lensDir, addLosses=True):
     """
-    Build each individual lens. Assumes there are files l*Glass.dat, l*BBAR.dat, and a subdirectory with loss files.
+    Build each individual lens. Assumes there are files l*Glass.dat, l*BBAR.dat, and a subdirectory with loss files called 'l*Losses'.
     Returns a bandpass object.
+    The l*Glass throughput file is smoothed using the savitzsky_golay function, and then multiplied by the two l*BBAR coatings.
+    If addLosses is True, the throughput curve is then multiplied by the loss curves in l*Losses.
     """
     lens = Bandpass()
     # Read the glass base file.
@@ -145,7 +171,7 @@ def buildLens(lensDir, addLosses=True):
     lens.setBandpass(wavelen, sb)
     # Add losses.
     if addLosses:
-        lossfiles = glob(os.path.join(lensDir, 'l*Losses", ''*.dat'))
+        lossfiles = glob(os.path.join(lensDir, 'l*Losses', '*.dat'))
         loss = Bandpass()
         loss.readThroughputList(lossfiles)
         wavelen, sb = lens.multiplyThroughputs(loss.wavelen, loss.sb)
@@ -154,8 +180,9 @@ def buildLens(lensDir, addLosses=True):
 
 def buildMirror(mirrorDir, addLosses=True):
     """
-    Build a mirror throughput curve. Assumes there are (a) *Losses.dat file and a *Ideal.dat file.
+    Build a mirror throughput curve. Assumes there are *Losses.dat file(s) and a *Ideal.dat file.
     Returns a bandpass object.
+    If addLosses is True, the *Ideal.dat file is multiplied by the *Losses.dat files.
     """
     # Read the mirror reflectance curve.
     mirrorfile = glob(os.path.join(mirrorDir, 'm*Ideal.dat'))
@@ -186,6 +213,14 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True):
     """
     Go through and build all of the default files into a system (includes atmosphere) and a hardware only throughput.
     Returns dictionaries of the hardware and system (including atmosphere) in bandpass objects, keyed per filtername.
+
+    defaultDirs is a dictionary containing the directories of each throughput component: it can be built automatically using
+     the setDefaultDirs function.
+    For each component, the relevant method above is called - to build the 'lens1' component, buildLens is called, etc.
+    The detector is built using the conservative 'buildGenericDetector': if the directory defaultDirs['detector'] points to
+     multiple subdirectories (one per vendor) then the detector response curve corresponds to the minimum of all curves at each wavelength.
+     If defaultsDirs['detector'] points to a single vendor directory (with a *QE.dat curve present), then this is treated a single vendor directory.
+    The value of addLosses is passed to each component as it is built (i.e. losses will be multiplied into each throughput curve).
     """
     # Build each component.
     detector = buildGenericDetector(defaultDirs['detector'], addLosses)
@@ -213,7 +248,16 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True):
 
 def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlegend=True,
                    linestyle='-', linewidth=2):
-    """Plot the bandpass throughput curves. """
+    """
+    Plot the bandpass throughput curves, provided as a dictionary in bandpassDict.
+
+    title = plot title
+    newfig = (True/False) start a new figure or use the active matplotlib figure
+    savefig = (True/False) save the figure to disk with default name title.png or throughputs.png if title not defined
+    addLegend = (True/False) add a legend to the plot
+    linestyle = matplotlib linestyle (default '-') for the throughput curve lines
+    linewidth = matplotlib linewidth (default 2) for the throughput curve lines.
+    """
     # Generate a new figure, if desired.
     if newfig:
         plt.figure()
@@ -244,7 +288,8 @@ def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlege
         plt.title(title)
     # Save the figure, if desired.
     if savefig:
-        if title is not NoneNone:
+        figformat = 'png'
+        if title is not None:
             plt.savefig('%s.%s' %(title, figformat), format=figformat)
         else:
             plt.savefig('throughputs.%s' %(figformat), format=figformat)
