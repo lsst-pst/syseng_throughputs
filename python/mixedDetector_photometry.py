@@ -1,11 +1,17 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from lsst.sims.photUtils import Bandpass, Sed, PhotometricParameters, LSSTdefaults, SignalToNoise
 import bandpassUtils as bu
 import sedUtils as su
 
-def calcM5s(hardware, system, title='m5'):
+filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
+filtercolors = {'u':'b', 'g':'c', 'r':'g',
+                'i':'y', 'z':'r', 'y':'m'}
+
+
+def calcM5s(hardware, system, atmos, title='m5'):
     photParams = PhotometricParameters()
     lsstDefaults = LSSTdefaults()
     darksky = Sed()
@@ -15,6 +21,7 @@ def calcM5s(hardware, system, title='m5'):
     m5 = {}
     sourceCounts = {}
     skyCounts = {}
+    skyMag = {}
     gamma = {}
     for f in system:
         m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, seeing=lsstDefaults.seeing(f))
@@ -22,13 +29,48 @@ def calcM5s(hardware, system, title='m5'):
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
         # Calculate the Skycounts expected in this bandpass.
-        skyCounts[f] = darksky.calcADU(system[f], photParams=photParams)
+        skyCounts[f] = darksky.calcADU(system[f], photParams=photParams) * photParams.platescale**2
+        # Calculate the sky surface brightness.
+        skyMag[f] = darksky.calcMag(system[f])
         # Calculate the gamma value.
         gamma[f] = SignalToNoise.calcGamma(system[f], m5[f], photParams)
     print title
-    print 'Filter m5 SourceCounts SkyCounts Gamma'
+    print 'Filter m5 SourceCounts SkyCounts SkyMag Gamma'
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
-        print '%s %.2f %.1f %.1f %.6f' %(f, m5[f], sourceCounts[f], skyCounts[f], gamma[f])
+        print '%s %.2f %.1f %.2f %.2f %.6f' %(f, m5[f], sourceCounts[f], skyCounts[f], skyMag[f], gamma[f])
+
+    # Show what these look like individually (add sky & m5 limits on throughput curves)
+    plt.figure()
+    ax = plt.gca()
+    # Add dark sky
+    ax2 = ax.twinx()
+    plt.sca(ax2)
+    skyab = -2.5*np.log10(darksky.fnu) - darksky.zp
+    ax2.plot(darksky.wavelen, skyab,
+             'k-', linewidth=0.8, label='Dark sky mags')
+    ax2.set_ylabel('AB mags')
+    ax2.set_ylim(24, 14)
+    plt.sca(ax)
+    # end of dark sky
+    handles = []
+    for f in filterlist:
+        plt.plot(system[f].wavelen, system[f].sb, color=filtercolors[f], linewidth=2)
+        myline = mlines.Line2D([], [], color=filtercolors[f], linestyle='-', linewidth=2,
+                               label = '%s: m5 %.1f (sky %.1f)' %(f, m5[f], skyMag[f]))
+        handles.append(myline)
+    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='Atmosphere, X=1.2')
+    # Add legend for dark sky.
+    myline = mlines.Line2D([], [], color='k', linestyle='-', label='Dark sky AB mags')
+    handles.append(myline)
+    # end of dark sky legend line
+    plt.legend(loc=(0.01, 0.69), handles=handles, fancybox=True, numpoints=1, fontsize='small')
+    plt.ylim(0, 1)
+    plt.xlim(300, 1100)
+    plt.xlabel('Wavelength (nm)')
+    plt.ylabel('Fractional Throughput Response')
+    if title == 'Vendor combo':
+        title = ''
+    plt.title('System total response curves %s' %(title))
     return m5
 
 
@@ -37,9 +79,6 @@ if __name__ == '__main__':
     defaultDirs = bu.setDefaultDirs(rootDir = '..')
     addLosses = True
 
-    filterlist = ('u', 'g' ,'r', 'i', 'z', 'y')
-    filtercolors = {'u':'b', 'g':'c', 'r':'g',
-                    'i':'y', 'z':'r', 'y':'m'}
 
 
     photParams = PhotometricParameters()
@@ -97,7 +136,7 @@ if __name__ == '__main__':
             hw_sb = core_sb * filters[f].sb
             hardware[detector][f].setBandpass(wavelen, hw_sb)
             system[detector][f].setBandpass(wavelen, hw_sb*atmosphere.sb)
-        m5[detector] = calcM5s(hardware[detector], system[detector], title='Vendor %s' %detector)
+        m5[detector] = calcM5s(hardware[detector], system[detector], atmosphere, title='Vendor %s' %detector)
 
     # Show what these look like (print m5 limits on throughput curves)
     plt.figure()
@@ -130,6 +169,7 @@ if __name__ == '__main__':
     plt.ylabel('$\phi$')
     plt.ylim(ymin=0)
     plt.title('Normalized system response curves ($\phi$)')
+
 
     # Calculate color terms (magnitudes)
 
