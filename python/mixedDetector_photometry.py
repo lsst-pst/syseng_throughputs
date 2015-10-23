@@ -29,9 +29,9 @@ def calcM5s(hardware, system, atmos, title='m5'):
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
         # Calculate the Skycounts expected in this bandpass.
-        skyCounts[f] = darksky.calcADU(system[f], photParams=photParams) * photParams.platescale**2
+        skyCounts[f] = darksky.calcADU(hardware[f], photParams=photParams) * photParams.platescale**2
         # Calculate the sky surface brightness.
-        skyMag[f] = darksky.calcMag(system[f])
+        skyMag[f] = darksky.calcMag(hardware[f])
         # Calculate the gamma value.
         gamma[f] = SignalToNoise.calcGamma(system[f], m5[f], photParams)
     print title
@@ -71,6 +71,7 @@ def calcM5s(hardware, system, atmos, title='m5'):
     if title == 'Vendor combo':
         title = ''
     plt.title('System total response curves %s' %(title))
+    plt.savefig('../plots/system+sky' + title + '.png', format='png', dpi=600)
     return m5
 
 
@@ -174,35 +175,34 @@ if __name__ == '__main__':
     # Calculate color terms (magnitudes)
 
     sedDir = '../seds'
-    seds, sedlists = su.readPhotSeds(sedDir = sedDir)
+    seds = su.readPhotSeds(sedDir = sedDir)
     redshifts = {}
     redshifts['galaxies'] = np.array([0.5, 1.0], 'float')
     redshifts['quasar'] = np.array([1.0, 1.5, 2.5], 'float')
     redshifts['sn'] = np.array([0.3, 0.8, 1.2, 1.5], 'float')
     redshifts['photoZ_outliers'] = np.array([0, 0.2, 1.0], 'float')
-    seds, sedlists = su.makeRedshiftedSeds(seds, sedlists, redshifts)
-    for s in seds:
-        seds[s].flambdaTofnu()
+    seds = su.makeRedshiftedSeds(seds, redshifts)
+    seds, system[det] = su.matchSedsBp(seds, system[det])
 
     mags = {}
     mags[1] = {}
     mags[2] = {}
     for det in (1, 2):
-        mags[det] = su.calcNatMags(system[det], seds, sedlists)
+        mags[det] = su.calcNatMags(system[det], seds)
     dmags = su.calcDeltaMags(mags[2], mags[1], mmags=True, matchBlue=False)
 
     gi = su.calcGiColors(mags[1])
     ug = su.calcAnyColor(mags[1], 'u', 'g')
 
-    su.plotDmags(sedlists, gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
-    su.plotDmagsSingle(sedlists, gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
+    su.plotDmags(gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
+    su.plotDmagsSingle(gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
     plt.ylim(-60, 60)
     plt.xlim(-1, 3)
     plt.grid()
 
-    su.plotDmags(sedlists, ug, dmags, colorname='u-g', xlim=[-1, 3],
+    su.plotDmags(ug, dmags, colorname='u-g', xlim=[-1, 3],
                 titletext='Color terms between detectors, as function of vendor1 u-g color')
-    su.plotDmagsSingle(sedlists, ug, dmags, colorname='u-g',
+    su.plotDmagsSingle(ug, dmags, colorname='u-g',
                     titletext='Color terms between detectors, as function of vendor1 u-g color')
     plt.ylim(-60, 60)
     plt.xlim(-1, 3)
