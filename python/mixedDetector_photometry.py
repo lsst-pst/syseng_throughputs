@@ -10,8 +10,7 @@ filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
-
-def calcM5s(hardware, system, atmos, title='m5'):
+def calcM5(hardware, system, atmos, title='m5'):
     photParams = PhotometricParameters()
     lsstDefaults = LSSTdefaults()
     darksky = Sed()
@@ -80,64 +79,17 @@ if __name__ == '__main__':
     defaultDirs = bu.setDefaultDirs(rootDir = '..')
     addLosses = True
 
-
-
-    photParams = PhotometricParameters()
-    lsstDefaults = LSSTdefaults()
-
-    # Build the separate vendor detectors.
-    qevendors = {}
-    qevendors[1] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor1'), addLosses)
-    qevendors[2] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor2'), addLosses)
-    qevendors['combo'] = bu.buildGenericDetector(defaultDirs['detector'], addLosses)
-    bu.plotBandpasses(qevendors, title='Vendor Detector Responses')
-
-    # Build the other components.
-    lens1 = bu.buildLens(defaultDirs['lens1'], addLosses)
-    lens2 = bu.buildLens(defaultDirs['lens2'], addLosses)
-    lens3 = bu.buildLens(defaultDirs['lens3'], addLosses)
-    filters = bu.buildFilters(defaultDirs['filters'], addLosses)
-    mirror1 = bu.buildMirror(defaultDirs['mirror1'], addLosses)
-    mirror2 = bu.buildMirror(defaultDirs['mirror2'], addLosses)
-    mirror3 = bu.buildMirror(defaultDirs['mirror3'], addLosses)
-    atmosphere = bu.buildAtmosphere(defaultDirs['atmosphere'])
-
-    # Plot all components.
-    plt.figure()
-    plt.plot(qevendors['combo'].wavelen, qevendors['combo'].sb, 'k-', linewidth=2, label='Detector')
-    plt.plot(lens1.wavelen, lens2.sb, 'g-', linewidth=2, label='L1')
-    plt.plot(lens2.wavelen, lens2.sb, 'r-', linewidth=2, label='L2')
-    plt.plot(lens3.wavelen, lens3.sb, 'b-', linewidth=2, label='L3')
-    for f in ['u', 'g', 'r', 'i', 'z', 'y']:
-        plt.plot(filters[f].wavelen, filters[f].sb, linestyle=':', linewidth=5, label=f)
-    plt.plot(mirror1.wavelen, mirror1.sb, 'g-.', linewidth=2, label='M1')
-    plt.plot(mirror2.wavelen, mirror2.sb, 'r--', linewidth=2, label='M2')
-    plt.plot(mirror3.wavelen, mirror3.sb, 'b--', linewidth=2, label='M3')
-    plt.plot(atmosphere.wavelen, atmosphere.sb, 'k:', linewidth=2, label='X=1.2')
-    plt.legend(loc=(0.96, 0.2), numpoints=1, fontsize='smaller', fancybox=True)
-    plt.xlim(300, 1100)
-    plt.ylim(0, 1)
-    plt.title('Throughput components')
-    plt.xlabel('Wavelength (nm)')
-    plt.ylabel('Fractional Throughput Response')
-
     hardware = {}
     system = {}
     m5 = {}
-    # Combine components (and individual combination for each detector vendor) by hand.
-    for detector in ['combo', 1, 2]:
-        core_sb = qevendors[detector].sb * lens1.sb * lens2.sb * lens3.sb * mirror1.sb * mirror2.sb * mirror3.sb
-        hardware[detector] = {}
-        system[detector] = {}
-        m5[detector] = {}
-        for f in filters:
-            hardware[detector][f] = Bandpass()
-            system[detector][f] = Bandpass()
-            wavelen = filters[f].wavelen
-            hw_sb = core_sb * filters[f].sb
-            hardware[detector][f].setBandpass(wavelen, hw_sb)
-            system[detector][f].setBandpass(wavelen, hw_sb*atmosphere.sb)
-        m5[detector] = calcM5s(hardware[detector], system[detector], atmosphere, title='Vendor %s' %detector)
+    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'])
+    hardware['combo'], system['combo'] = bu.buildHardwareAndSystem(defaultDirs)
+    m5['combo'] = calcM5(hardware['combo'], system['combo'], atmosphere, title='combo')
+    genericDetector = defaultDirs['detector']
+    for det in [1, 2]:
+        defaultDirs['detector'] = os.path.join(genericDetector, 'vendor%d' %det)
+        hardware[det], system[det] = bu.buildHardwareAndSystem(defaultDirs)
+        m5[det] = calcM5(hardware[det], system[det], atmosphere, title='vendor%d' %(det))
 
     # Show what these look like (print m5 limits on throughput curves)
     plt.figure()

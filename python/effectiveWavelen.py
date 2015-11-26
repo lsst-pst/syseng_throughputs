@@ -1,20 +1,35 @@
+# Calculate and print to screen the effective wavelengths for the bandpasses
+#   Builds the bandpasses from the individual component files, using bandpassUtils
+#   Reads the standard atmosphere from siteProperties/pachonModtranAtm_12.dat
+#   Reads additional atmospheres from the $LSST_THROUGHPUTS repo, if available.
+#
+#  Set environment variable SYSENG_THROUGHPUTS_DIR to be the root of syseng_throughputs,
+#   (automatically done if package set up via eups).
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from lsst.sims.photUtils import Bandpass, Sed, PhotometricParameters, LSSTdefaults
 import bandpassUtils as bu
 
-def calcEffWavelen(hardware, title):
+def calcEffWavelen(hardware, title, throughputDir=None):
     photParams = PhotometricParameters()
     lsstDefaults = LSSTdefaults()
     atmos = {}
     stdAtmoFile = os.path.join(os.getenv('SYSENG_THROUGHPUTS_DIR'), 'siteProperties/pachonModtranAtm_12.dat')
     atmos['std'] = Bandpass()
     atmos['std'].readThroughput(stdAtmoFile)
-    Xarr = np.arange(1.0, 2.55, 0.1)
-    for X in Xarr:
-        atmos['%.1f' %X] = Bandpass()
-        atmos['%.1f' %X].readThroughput(os.path.join(os.getenv('THROUGHPUTS_DIR'), 'atmos/atmos_%d.dat' %(int(X*10))))
+    multiAtmos = False
+    if throughputDir is None:
+        throughputDir = os.getenv('THROUGHPUTS_DIR')
+    if throughputDir is not None:
+        multiAtmos = True
+        Xarr = np.arange(1.0, 2.55, 0.1)
+        for X in Xarr:
+            atmos['%.1f' %X] = Bandpass()
+            atmos['%.1f' %X].readThroughput(os.path.join(throughputDir,
+                                                         'atmos/atmos_%d.dat' %(int(X*10))))
+
     atmoskeys = sorted(atmos.keys())
     print title
     print '    %s' %('    '.join(atmoskeys))
@@ -28,35 +43,17 @@ def calcEffWavelen(hardware, title):
             writestring += '%.2f ' %(effsb[k])
         print writestring
 
-        effsb_vals = np.zeros(len(Xarr), float)
-        for i, X in enumerate(Xarr):
-            effsb_vals[i] = effsb['%.1f' %X]
-        p = np.polyfit(Xarr, effsb_vals, 1)
-        print p
-        effsb_eval = np.polyval(p, Xarr) 
-        print (effsb_vals - effsb_eval).max(), (effsb_vals-effsb_eval).std()
-        plt.plot(Xarr, effsb_vals-effsb_eval, label=f)
-    plt.legend()
-    plt.show()
-
 if __name__ == '__main__':
 
     defaultDirs = bu.setDefaultDirs(rootDir = '..')
+    # To use a particular vendor's detector response curve, uncomment one of the lines below
+    defaultDetector = defaultDirs['detector']
+    #defaultDirs['detector'] = os.path.join(defaultDetector, 'vendor1')
+    #defaultDirs['detector'] = os.path.join(defaultDetector, 'vendor2')
 
     addLosses = True
 
-    # Minimum detector throughputs
-    defaultDirs['detector'] = os.path.join(os.getenv('SYSENG_THROUGHPUTS_DIR'), 'components/camera/detector')
     hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses)
     calcEffWavelen(hardware, 'Min: Std Atmo')
-    exit()
-    # vendor1 detector throughputs
-    defaultDirs['detector'] = os.path.join(os.getenv('SYSENG_THROUGHPUTS_DIR'), 'components/camera/detector/vendor1')
-    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses)
-    calcEffWavelen(hardware, 'Vendor 1: Std Atmo')
 
-        # Minimum detector throughputs
-    defaultDirs['detector'] = os.path.join(os.getenv('SYSENG_THROUGHPUTS_DIR'), 'components/camera/detector/vendor2')
-    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses)
-    calcEffWavelen(hardware, 'Vendor 2: Std Atmo')
 
