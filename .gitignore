@@ -10,4 +10,4 @@ doc/htmlDir
 tests/.tests
 ups/*.cfgc
 version.py
-.ipynb_checkpoints/*
+.ipynb_checkpoints
