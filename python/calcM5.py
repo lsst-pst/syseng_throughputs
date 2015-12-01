@@ -33,7 +33,7 @@ def calcM5(hardware, system, atmos, title='m5'):
     m5 = {}
     Tb = {}
     Sb = {}
-    km_12 = {}
+    kAtm = {}
     Cm = {}
     dCm_infinity = {}
     sourceCounts = {}
@@ -59,35 +59,36 @@ def calcM5(hardware, system, atmos, title='m5'):
         # Calculate the "Sigma" 'system integral'
         Sb[f] = np.sum(hardware[f].sb / hardware[f].wavelen) * dwavelen
         # Calculate km - atmospheric extinction in a particular bandpass
-        km_12[f] = -2.5*np.log10(Tb[f] / Sb[f])
+        kAtm[f] = -2.5*np.log10(Tb[f] / Sb[f])
         # Calculate the Cm and Cm_Infinity values.
-        # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.2)
-        # Assumes atmosphere used in system throughput is X=1.2
+        # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
+        # Assumes atmosphere used in system throughput is X=1.0
+        X = 1.0
         Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
                  + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0)
-                 - km_12[f]*(1.2-1.2))
+                 - kAtm[f]*(X-1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
         m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
                                      FWHMeff=lsstDefaults.FWHMeff(f))
         Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21)
                           + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
                           + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0)
-                          - km_12[f]*(1.2-1.2))
+                          - kAtm[f]*(X-1.0))
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print title
-    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb km_1.2 Gamma Cm dCm_infinity m5 SourceCounts'
+    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
         print '%s %.2f %.2f %.2f %.1f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
            %(f, lsstDefaults.FWHMeff(f),
              SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f)),
-             skyMag[f], skyCounts[f], Tb[f], Sb[f], km_12[f],
+             skyMag[f], skyCounts[f], Tb[f], Sb[f], kAtm[f],
              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
 
     # Show what these look like individually (add sky & m5 limits on throughput curves)
     plt.figure()
     for f in filterlist:
         plt.plot(system[f].wavelen, system[f].sb, color=filtercolors[f], linewidth=2, label=f)
-    plt.plot(atmosphere.wavelen, atmosphere.sb, 'k:', label='X=1.2')
+    plt.plot(atmosphere.wavelen, atmosphere.sb, 'k:', label='X=1.0')
     plt.legend(loc='center right', fontsize='smaller')
     plt.xlim(300, 1100)
     plt.ylim(0, 1)
@@ -115,9 +116,9 @@ def calcM5(hardware, system, atmos, title='m5'):
         myline = mlines.Line2D([], [], color=filtercolors[f], linestyle='-', linewidth=2,
                                label = '%s: m5 %.1f (sky %.1f)' %(f, m5[f], skyMag[f]))
         handles.append(myline)
-    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='Atmosphere, X=1.2')
+    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='Atmosphere, X=1.0')
     # Add legend for dark sky.
-    myline = mlines.Line2D([], [], color='k', linestyle='-', label='Dark sky AB mags')
+    myline = mlines.Line2D([], [], color='k', linestyle='-', label='Dark sky AB mags/arcsec^2')
     handles.append(myline)
     # end of dark sky legend line
     plt.legend(loc=(0.01, 0.69), handles=handles, fancybox=True, numpoints=1, fontsize='small')
@@ -144,7 +145,7 @@ if __name__ == '__main__':
 
     # Build the system and hardware throughput curves.
     hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses)
-    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'])
+    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10.dat')
 
     m5 = calcM5(hardware, system, atmosphere, title='')
 
