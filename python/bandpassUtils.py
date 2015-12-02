@@ -265,10 +265,11 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     atmo.readThroughput(atmofile)
     return atmo
 
-def buildHardwareAndSystem(defaultDirs, addLosses=True):
+def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None):
     """
     Using directories for each component set by 'defaultDirs',
      builds the system (including atmosphere) and hardware throughput curves for each filter.
+     Allows optional override of the default atmosphere by one passed in atmosphereOverride (a bandpass object).
     Returns dictionaries of the hardware and system in bandpass objects, keyed per filtername.
 
     defaultDirs is a dictionary containing the directories of each throughput component:
@@ -291,7 +292,14 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True):
     mirror1 = buildMirror(defaultDirs['mirror1'], addLosses)
     mirror2 = buildMirror(defaultDirs['mirror2'], addLosses)
     mirror3 = buildMirror(defaultDirs['mirror3'], addLosses)
-    atmosphere = readAtmosphere(defaultDirs['atmosphere'])
+    if atmosphereOverride is None:
+        atmosphere = readAtmosphere(defaultDirs['atmosphere'])
+    else:
+        atmosphere = atmosphereOverride
+        if np.all(atmosphere.wavelen != detector.wavelen):
+            atmosphere.resampleBandpass(wavelen_min = detector.wavelen_min,
+                                        wavelen_max = detector.wavelen_max,
+                                        wavelen_step = detector.wavelen_step)
     # Combine the individual components.
     # Note that the process of reading in the files above would have put them onto the same wavelength grid.
     core_sb = (detector.sb * lens1.sb * lens2.sb * lens3.sb

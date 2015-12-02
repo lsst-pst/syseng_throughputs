@@ -53,10 +53,10 @@ def calcM5(hardware, system, atmos, title='m5'):
         skyMag[f] = darksky.calcMag(hardware[f])
         # Calculate the gamma value.
         gamma[f] = SignalToNoise.calcGamma(system[f], m5[f], photParams)
-        # Calculate the "Throughput Integral"
+        # Calculate the "Throughput Integral" (this is the hardware + atmosphere)
         dwavelen = np.mean(np.diff(system[f].wavelen))
         Tb[f] = np.sum(system[f].sb / system[f].wavelen) * dwavelen
-        # Calculate the "Sigma" 'system integral'
+        # Calculate the "Sigma" 'system integral' (this is the hardware only)
         Sb[f] = np.sum(hardware[f].sb / hardware[f].wavelen) * dwavelen
         # Calculate km - atmospheric extinction in a particular bandpass
         kAtm[f] = -2.5*np.log10(Tb[f] / Sb[f])
@@ -143,10 +143,13 @@ if __name__ == '__main__':
     # Add losses to each component?
     addLosses = True
 
-    # Build the system and hardware throughput curves.
-    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses)
-    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10.dat')
+    # Build the system and hardware throughput curves (without aerosols, with X=1.0).
+    #atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10.dat')
+    #hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
+    #m5 = calcM5(hardware, system, atmosphere, title='')
 
+    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
+    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
     m5 = calcM5(hardware, system, atmosphere, title='')
 
 
