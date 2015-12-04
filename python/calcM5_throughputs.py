@@ -1,4 +1,4 @@
-# Calculate m5 and table2 values using the SYSENG_THROUGHPUTS files. Saves figures to plots directory automatically.
+# Calculate m5 and table2 values using the *throughputs* repo files. Does NOT save figures.
 
 import os
 import numpy as np
@@ -43,7 +43,8 @@ def calcM5(hardware, system, atmos, title='m5'):
     skyMag = {}
     gamma = {}
     for f in system:
-        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
+        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams,
+                                     FWHMeff=lsstDefaults.FWHMeff(f))
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
@@ -63,14 +64,18 @@ def calcM5(hardware, system, atmos, title='m5'):
         kAtm[f] = -2.5*np.log10(Tb[f] / Sb[f])
         # Calculate the Cm and Cm_Infinity values.
         # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
+        # Exptime should be 30 seconds and X=1.0
+        exptime = photParams.exptime * photParams.nexp
+        if exptime != 30.0:
+            print "Whoa, exposure time was not as expected - got %s not 30 seconds. Please edit Cm calculation." %(exptime)
         # Assumes atmosphere used in system throughput is X=1.0
-        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
-                 + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) - kAtm[f]*(X-1.0))
+        X = 1.0
+        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
         # Calculate Cm_Infinity by setting readout noise to zero.
         m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
                                      FWHMeff=lsstDefaults.FWHMeff(f))
-        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
-                       + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) - kAtm[f]*(X-1.0))
+        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21)
+                          + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print title
     print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
@@ -93,7 +98,6 @@ def calcM5(hardware, system, atmos, title='m5'):
     plt.ylabel('Throughput')
     plt.title('System Throughputs')
     plt.grid(True)
-    plt.savefig('../plots/throughputs.png', format='png')
 
     plt.figure()
     ax = plt.gca()
@@ -124,7 +128,6 @@ def calcM5(hardware, system, atmos, title='m5'):
     plt.xlabel('Wavelength (nm)')
     plt.ylabel('Fractional Throughput Response')
     plt.title('System total response curves %s' %(title))
-    plt.savefig('../plots/system+sky' + title + '.png', format='png', dpi=600)
     return m5
 
 
@@ -132,21 +135,20 @@ if __name__ == '__main__':
 
     # Set the directories for each component.
     # Note that this sets the detector to be the 'generic detector' (minimum of each vendor).
-    defaultDirs = bu.setDefaultDirs(rootDir = '..')
-    # To use a particular vendor, uncomment one of the following lines or edit as necessary.
-    # defaultDirs['detector'] = 'vendor1'
-    # defaultDirs['detector'] = 'vendor2'
-
-    # Add losses to each component?
-    addLosses = True
+    throughputDir = os.getenv('LSST_THROUGHPUTS_DEFAULT')
+    defaultDirs = bu.setDefaultDirs()
 
     # Build the system and hardware throughput curves (without aerosols, with X=1.0).
-    #atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10.dat')
-    #hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
-    #m5 = calcM5(hardware, system, atmosphere, title='')
-
     atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
-    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
+    hardware = {}
+    system = {}
+    for f in ['u', 'g', 'r', 'i', 'z', 'y']:
+        hardware[f] = Bandpass()
+        system[f] = Bandpass()
+        hardware[f].readThroughputList(componentList=['detector.dat', 'filter_'+f+'.dat','lens1.dat', 'lens2.dat', 'lens3.dat', 'm1.dat', 'm2.dat', 'm3.dat'],
+                                       rootDir=throughputDir)
+        system[f].wavelen, system[f].sb = hardware[f].multiplyThroughputs(atmosphere.wavelen, atmosphere.sb)
+
     m5 = calcM5(hardware, system, atmosphere, title='')
 
 
