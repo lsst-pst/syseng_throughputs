@@ -31,21 +31,24 @@ darksky = Sed()
 darksky.readSED_flambda(os.path.join(defaultDirs['atmosphere'], 'darksky.dat'))
 hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses=addLosses, atmosphereOverride=atmos_std)
 
-version = subprocess.check_output(['git', 'describe'])
-sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"])
+version = subprocess.check_output(['git', 'describe']).strip()
+sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
 print "version", version, "sha1", sha1
 
 # Write the data to disk.
-header = 'LSST Throughputs files created from syseng_throughputs repo\n'
-header += 'Version %s sha1 %s' %(version, sha1)
+versioninfo = '# Version %s\n'%(version)
+versioninfo += '# sha1 %s\n' %(sha1)
+
+header = '# LSST Throughputs files created from syseng_throughputs repo\n'
+header += versioninfo
 outDir = 'baseline'
 if not os.path.isdir(outDir):
     os.makedirs(outDir)
 
-atmosheader = header + '\n Aerosols added to atmosphere'
+atmosheader = header + '\n# Aerosols added to atmosphere'
 
-skyheader = 'LSST dark sky SED from syseng_throughputs repo\n'
-skyheader += 'Version %s sha1 %s' %(version, sha1)
+skyheader = '# LSST dark sky SED from syseng_throughputs repo\n'
+skyheader += versioninfo
 
 detector.writeThroughput(os.path.join(outDir, 'detector.dat'), print_header=header)
 lens1.writeThroughput(os.path.join(outDir, 'lens1.dat'), print_header=header)
