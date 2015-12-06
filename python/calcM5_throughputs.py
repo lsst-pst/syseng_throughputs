@@ -70,12 +70,12 @@ def calcM5(hardware, system, atmos, title='m5'):
             print "Whoa, exposure time was not as expected - got %s not 30 seconds. Please edit Cm calculation." %(exptime)
         # Assumes atmosphere used in system throughput is X=1.0
         X = 1.0
-        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
+        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
         # Calculate Cm_Infinity by setting readout noise to zero.
         m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
                                      FWHMeff=lsstDefaults.FWHMeff(f))
         Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21)
-                          + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
+                       - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print title
     print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
