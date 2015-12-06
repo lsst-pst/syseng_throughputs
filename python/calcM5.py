@@ -82,6 +82,12 @@ def calcM5(hardware, system, atmos, title='m5'):
              skyMag[f], skyCounts[f], Tb[f], Sb[f], kAtm[f],
              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
 
+
+    for f in filterlist:
+        m5_cm = Cm[f] + 0.5*(skyMag[f] - 21.0) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
+        if m5_cm - m5[f] > 0.001:
+            raise ValueError('Cm calculation for %s band is incorrect! m5_cm != m5_snr' %f)
+
     # Show what these look like individually (add sky & m5 limits on throughput curves)
     plt.figure()
     for f in filterlist:
@@ -101,7 +107,9 @@ def calcM5(hardware, system, atmos, title='m5'):
     # Add dark sky
     ax2 = ax.twinx()
     plt.sca(ax2)
-    skyab = -2.5*np.log10(darksky.fnu) - darksky.zp
+    skyab = np.zeros(len(darksky.fnu))
+    condition = np.where(darksky.fnu > 0)
+    skyab[condition] = -2.5*np.log10(darksky.fnu[condition]) - darksky.zp
     ax2.plot(darksky.wavelen, skyab,
              'k-', linewidth=0.8, label='Dark sky mags')
     ax2.set_ylabel('AB mags')
