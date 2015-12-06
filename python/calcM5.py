@@ -64,13 +64,14 @@ def calcM5(hardware, system, atmos, title='m5'):
         # Calculate the Cm and Cm_Infinity values.
         # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
         # Assumes atmosphere used in system throughput is X=1.0
-        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
-                 + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) - kAtm[f]*(X-1.0))
+        X = 1.0
+        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
+                 - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
         m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
                                      FWHMeff=lsstDefaults.FWHMeff(f))
-        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
-                       + 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) - kAtm[f]*(X-1.0))
+        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
+                       - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print title
     print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
