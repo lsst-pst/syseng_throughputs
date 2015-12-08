@@ -1,5 +1,4 @@
-# Added aerosol component
-# Wavelength(nm)  Throughput(0-1)
+#Added aerosol component# Wavelength(nm)  Throughput(0-1)
 300.0 0.0155191599458
 300.1 0.0162258176111
 300.2 0.0169325095281
