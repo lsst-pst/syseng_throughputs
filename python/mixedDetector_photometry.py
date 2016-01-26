@@ -23,7 +23,7 @@ def calcM5(hardware, system, atmos, title='m5'):
     skyMag = {}
     gamma = {}
     for f in system:
-        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, seeing=lsstDefaults.seeing(f))
+        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
@@ -57,7 +57,7 @@ def calcM5(hardware, system, atmos, title='m5'):
         myline = mlines.Line2D([], [], color=filtercolors[f], linestyle='-', linewidth=2,
                                label = '%s: m5 %.1f (sky %.1f)' %(f, m5[f], skyMag[f]))
         handles.append(myline)
-    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='Atmosphere, X=1.2')
+    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='Atmosphere, X=1.0 with aerosols')
     # Add legend for dark sky.
     myline = mlines.Line2D([], [], color='k', linestyle='-', label='Dark sky AB mags')
     handles.append(myline)
@@ -82,13 +82,13 @@ if __name__ == '__main__':
     hardware = {}
     system = {}
     m5 = {}
-    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'])
-    hardware['combo'], system['combo'] = bu.buildHardwareAndSystem(defaultDirs)
+    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
+    hardware['combo'], system['combo'] = bu.buildHardwareAndSystem(defaultDirs, atmosphereOverride=atmosphere)
     m5['combo'] = calcM5(hardware['combo'], system['combo'], atmosphere, title='combo')
     genericDetector = defaultDirs['detector']
     for det in [1, 2]:
         defaultDirs['detector'] = os.path.join(genericDetector, 'vendor%d' %det)
-        hardware[det], system[det] = bu.buildHardwareAndSystem(defaultDirs)
+        hardware[det], system[det] = bu.buildHardwareAndSystem(defaultDirs, atmosphereOverride=atmosphere)
         m5[det] = calcM5(hardware[det], system[det], atmosphere, title='vendor%d' %(det))
 
     # Show what these look like (print m5 limits on throughput curves)
