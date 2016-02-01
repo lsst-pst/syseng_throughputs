@@ -16,6 +16,8 @@ from lsst.sims.photUtils import Bandpass
 #   containing the throughput response. The name of this file varies. For the glass for
 #   lens components, the glass throughput curve must be smoothed by a savitzky_golay function.
 
+belowZeroThreshhold = -1.0e-15
+
 def setDefaultDirs(rootDir=None):
     """
     Returns a dictionary with the default directory locations of each component of the system throughput.
@@ -105,6 +107,13 @@ def buildVendorDetector(vendorDir, addLosses=True):
         loss = _readLosses(vendorDir)
         wavelength, sb = qe.multiplyThroughputs(loss.wavelen, loss.sb)
         qe.setBandpass(wavelength, sb)
+    # Verify that no values go significantly below zero.
+    belowzero = np.where(qe.sb < 0)
+    # If there are QE values significantly < 0, raise an exception.
+    if qe.sb[belowzero] < belowZeroThreshhold:
+        raise ValueError('Found values in QE response significantly below zero.')
+    # If they are just small errors in interpolation, set to zero.
+    qe.sb[belowzero] = 0
     return qe
 
 def buildDetector(detectorDir, addLosses=True):
@@ -169,6 +178,14 @@ def buildFilters(filterDir, addLosses=True):
         for f in filters:
             wavelen, sb = filters[f].multiplyThroughputs(loss.wavelen, loss.sb)
             filters[f].setBandpass(wavelen, sb)
+    # Verify that no values go significantly below zero.
+    for f in filters:
+        belowzero = np.where(filters[f].sb < 0)
+        # If there are QE values significantly < 0, raise an exception.
+        if filters[f].sb[belowzero] < belowZeroThreshhold:
+            raise ValueError('Found values in filter response significantly below zero in %s filter' % f)
+        # If they are just small errors in interpolation, set to zero.
+        filters[f].sb[belowzero] = 0
     return filters
 
 def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
@@ -231,6 +248,13 @@ def buildLens(lensDir, addLosses=True):
         loss = _readLosses(lensDir)
         wavelen, sb = lens.multiplyThroughputs(loss.wavelen, loss.sb)
         lens.setBandpass(wavelen, sb)
+    # Verify that no values go significantly below zero.
+    belowzero = np.where(lens.sb < 0)
+    # If there are QE values significantly < 0, raise an exception.
+    if lens.sb[belowzero] < belowZeroThreshhold:
+        raise ValueError('Found values in lens throughput significantly below zero.')
+    # If they are just small errors in interpolation, set to zero.
+    lens.sb[belowzero] = 0
     return lens
 
 def buildMirror(mirrorDir, addLosses=True):
@@ -252,6 +276,13 @@ def buildMirror(mirrorDir, addLosses=True):
         loss = _readLosses(mirrorDir)
         wavelen, sb = mirror.multiplyThroughputs(loss.wavelen, loss.sb)
         mirror.setBandpass(wavelen, sb)
+    # Verify that no values go significantly below zero.
+    belowzero = np.where(mirror.sb < 0)
+    # If there are QE values significantly < 0, raise an exception.
+    if mirror.sb[belowzero] < belowZeroThreshhold:
+        raise ValueError('Found values in mirror response significantly below zero')
+    # If they are just small errors in interpolation, set to zero.
+    mirror.sb[belowzero] = 0
     return mirror
 
 def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
@@ -263,6 +294,13 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     atmofile = os.path.join(atmosDir, atmosFile)
     atmo = Bandpass()
     atmo.readThroughput(atmofile)
+    # Verify that no values go significantly below zero.
+    belowzero = np.where(atmo.sb < 0)
+    # If there are QE values significantly < 0, raise an exception.
+    if atmo.sb[belowzero] < belowZeroThreshhold:
+        raise ValueError('Found values in atmospheric transmission significantly below zero')
+    # If they are just small errors in interpolation, set to zero.
+    atmo.sb[belowzero] = 0
     return atmo
 
 def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None):
