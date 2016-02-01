@@ -93,8 +93,7 @@ SHA1 and release tags.
  should be used. To represent zenith, optimum throughputs, the X=1.0,
  with aerosols [atmosphere](./siteProperties/atmos_10_aerosol.dat)
  curve should be used.
- * _Dark sky_: The expected dark sky, zenith, background spectrum can
+* _Dark sky_: The expected dark sky, zenith, background spectrum can
    be found in [darksky.dat](./siteProperties/darksky.dat). This is
    used to calculate expected zenith, dark-sky limiting magnitude
    values.
-   
