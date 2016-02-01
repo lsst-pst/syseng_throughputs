@@ -1,4 +1,4 @@
-## syseng_throughputs ##
+# syseng_throughputs #
 SysEng-approved LSST throughput curves
 
 This repository provides the ultimate source of the throughput curves in the repository [lsst/throughputs](https://github.com/lsst/throughputs).
@@ -22,9 +22,9 @@ of this repository directly - the curves in the throughputs repository
 are constructed from these curves, and can be traced through the git
 SHA1 and release tags.
 
-## As of release 1.1: ##
+# As of release 1.1: #
 
-# Camera Components #
+## Camera Components ##
 * _Detector_: There are two separate detector response and loss curves,
   corresponding to the expected response (QE response + AR coatings)
   of the CCDs provided by each of the two vendors under
@@ -69,7 +69,8 @@ SHA1 and release tags.
   there are also ten-year-average simulated
   contamination and condensation losses for each surface of the
   filters.
-# Telesope Components #
+
+## Telesope Components ##
 * _Mirrors_: Each mirror has a reflectivity curve, which should be
   coupled with the respective losses curve found in the relevant
   `*_Losses` directory. The losses represent the ten-year average;
