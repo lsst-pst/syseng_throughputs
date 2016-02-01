@@ -79,3 +79,22 @@ SHA1 and release tags.
   (tertiary) is based on using a protected aluminum surface; the
   reflectivity of mirror2 (secondary) is based on using a protected
   silver surface.
+
+## Site Properties ##
+* _Atmosphere_: The atmosphere throughput is modeled by using MODTRAN to
+ produce a 'standard US Atmosphere', which does not include aerosols.
+ To better represent the expected atmospheric transmission on site, aerosols
+ have been added to the resulting throughput curves, using the python
+ script [addAerosols.py](./python/addAerosols.py). The atmospheric
+ transmission curves are in the [siteProperties](./siteProperties)
+ directory, with an X=1.2 and X=1.0 atmosphere, with and without
+ aerosols. To represent 'typical' throughput, the X=1.2, with aerosols
+ [atmosphere](./siteProperties/pachonModtranAtm_12_aerosol.dat) curve
+ should be used. To represent zenith, optimum throughputs, the X=1.0,
+ with aerosols [atmosphere](./siteProperties/atmos_10_aerosol.dat)
+ curve should be used.
+ * _Dark sky_: The expected dark sky, zenith, background spectrum can
+   be found in [darksky.dat](./siteProperties/darksky.dat). This is
+   used to calculate expected zenith, dark-sky limiting magnitude
+   values.
+   
