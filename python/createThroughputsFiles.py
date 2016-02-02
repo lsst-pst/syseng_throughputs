@@ -1,5 +1,8 @@
 # Create a set of files to replace the "baseline" files in the THROUGHPUTS repository.
-import os, subprocess
+# Add header information that tracks the files here and also adds cutoff wavelength information.
+import os
+import subprocess
+import numpy as np
 from lsst.sims.photUtils import Bandpass, Sed
 import bandpassUtils as bu
 
@@ -31,24 +34,34 @@ darksky = Sed()
 darksky.readSED_flambda(os.path.join(defaultDirs['atmosphere'], 'darksky.dat'))
 hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses=addLosses, atmosphereOverride=atmos_std)
 
+# Write the data to disk.
+outDir = 'baseline'
+if not os.path.isdir(outDir):
+    os.makedirs(outDir)
+
 version = subprocess.check_output(['git', 'describe']).strip()
 sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
 print "version", version, "sha1", sha1
-
-# Write the data to disk.
 versioninfo = '# Version %s\n'%(version)
 versioninfo += '# sha1 %s\n' %(sha1)
 
 header = '# LSST Throughputs files created from syseng_throughputs repo\n'
 header += versioninfo
-outDir = 'baseline'
-if not os.path.isdir(outDir):
-    os.makedirs(outDir)
 
-atmosheader = header + '\n# Aerosols added to atmosphere'
+atmosheader = header + '# Aerosols added to atmosphere\n'
+systemheader = header + '# Aerosols added to atmosphere\n'
 
 skyheader = '# LSST dark sky SED from syseng_throughputs repo\n'
 skyheader += versioninfo
+
+perfilterheader = {}
+for f in filters:
+    good = np.where(filters[f].sb > 0)[0]
+    wavelen_blue = filters[f].wavelen[good[0]-1]
+    wavelen_red = filters[f].wavelen[good[-1]+1]
+    perfilterheader[f] = '# Wavelen_cutoff_BLUE %.2f\n' % (wavelen_blue)
+    perfilterheader[f] += '# Wavelen_cutoff_RED %.2f\n' % (wavelen_red)
+
 
 detector.writeThroughput(os.path.join(outDir, 'detector.dat'), print_header=header)
 lens1.writeThroughput(os.path.join(outDir, 'lens1.dat'), print_header=header)
@@ -62,9 +75,9 @@ atmos_10.writeThroughput(os.path.join(outDir, 'atmos_10.dat'), print_header=atmo
 darksky.writeSED(os.path.join(outDir, 'darksky.dat'), print_header=skyheader)
 
 for f in filters:
-    filters[f].writeThroughput(os.path.join(outDir, 'filter_%s.dat' %(f)), print_header=header)
-    hardware[f].writeThroughput(os.path.join(outDir, 'hardware_%s.dat' %(f)), print_header=header)
-    system[f].writeThroughput(os.path.join(outDir, 'total_%s.dat' %(f)), print_header=header)
+    filters[f].writeThroughput(os.path.join(outDir, 'filter_%s.dat' %(f)), print_header=header+perfilterheader[f])
+    hardware[f].writeThroughput(os.path.join(outDir, 'hardware_%s.dat' %(f)), print_header=header+perfilterheader[f])
+    system[f].writeThroughput(os.path.join(outDir, 'total_%s.dat' %(f)), print_header=systemheader+perfilterheader[f])
 
 
 
