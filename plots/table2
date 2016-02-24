@@ -1,4 +1,3 @@
-
 Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts
 u 0.92 0.81 22.95 51.4 0.022 0.036 0.5041 0.037720 22.94 0.56 23.62 438.67
 g 0.87 0.77 22.24 396.9 0.118 0.143 0.2097 0.038653 24.46 0.12 24.85 742.46
