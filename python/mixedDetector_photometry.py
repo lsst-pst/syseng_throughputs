@@ -11,7 +11,8 @@ filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
 def calcM5(hardware, system, atmos, title='m5'):
-    photParams = PhotometricParameters()
+    effarea = np.pi * (6.423/2.0*100.)**2
+    photParams = PhotometricParameters(effarea = effarea)
     lsstDefaults = LSSTdefaults()
     darksky = Sed()
     darksky.readSED_flambda(os.path.join('../siteProperties', 'darksky.dat'))
