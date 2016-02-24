@@ -45,15 +45,18 @@ SHA1 and release tags.
 * _Lenses_: There are three separate lenses in the camera, each with an
   identical base `*_Glass.dat` curve that represents the fused silica
   throughput of the lens itself. This throughput curve must be smoothed using the
-  Savitzy-Golay smoothing function. The silica base of the len must
+  Savitzy-Golay smoothing function. The fused silica lens transmission curves are
+  based on vendor-provided expected transmission curves. The silica base of the len must
   also be combined with the BroadBand AntiReflective (BBAR) coatings
   response in the `*_Coatings` directory. There are two coatings; one
-  for each side of the lens. There are small differences between the
+  for each side of the lens. The BBAR coating response is based on vendor-provided
+  models, consistent with LSST requested coating requirements. There are small differences between the
   glass components used for each lens; there are also small
   differences in the BBARS, including a difference from one side of
   the lens to the other. In each lens, there are also several files in
   the `*_Losses` directory, representing the time-averaged condensation and
-  contamination losses for each surface of each lens. These vary
+  contamination losses for each surface of each lens. The losses are based on
+  models developed by Andy Rasmussen at SLAC. These vary
   depending on the direction the lens is facing and the location of
   the lens in the camera. The final response curves for all lenses are
   similar in shape, however lens3 has a slightly higher overall
@@ -68,17 +71,21 @@ SHA1 and release tags.
   an expected as-provided filter set). In the `*_Losses` directory,
   there are also ten-year-average simulated
   contamination and condensation losses for each surface of the
-  filters.
+  filters, based on models developed by Andy Rasmussen.
 
 ## Telesope Components ##
 * _Mirrors_: Each mirror has a reflectivity curve, which should be
   coupled with the respective losses curve found in the relevant
-  `*_Losses` directory. The losses represent the ten-year average;
-  currently mirror cleanings are scheduled yearly, with resurfacing every
-  two years. The reflectivity of mirror1 (primary mirror) and mirror3
+  `*_Losses` directory. The reflectivity of mirror1 (primary mirror) and mirror3
   (tertiary) is based on using a protected aluminum surface; the
   reflectivity of mirror2 (secondary) is based on using a protected
-  silver surface.
+  silver surface. These mirror reflectivities are based on lab measurements
+  of pristine witness samples. The losses represent the ten-year average,
+  based on performance degradation measurements from historical telescope performance,
+  modified for the expected LSST maintenance schedule.
+  Currently mirror cleanings are scheduled yearly, with resurfacing every
+  two years.
+
 
 ## Site Properties ##
 * _Atmosphere_: The atmosphere throughput is modeled by using MODTRAN to
@@ -96,4 +103,7 @@ SHA1 and release tags.
 * _Dark sky_: The expected dark sky, zenith, background spectrum can
    be found in [darksky.dat](./siteProperties/darksky.dat). This is
    used to calculate expected zenith, dark-sky limiting magnitude
-   values.
+   values. The dark sky SED is based on data from UVES and Gemini Near-IR,
+   combined with ESO sky data from Ferdinand Patat, modified slightly at
+   the red and blue ends to match observed dark sky broadband skybrightness
+   values reported by SDSS.
