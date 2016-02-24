@@ -22,9 +22,11 @@ def calcM5(hardware, system, atmos, title='m5'):
     # photParams stores default values for the exposure time, nexp, size of the primary,
     #  readnoise, gain, platescale, etc.
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/PhotometricParameters.py
-    photParams = PhotometricParameters(gain=1.0)
+    effarea = np.pi * (6.423/2.*100.)**2
+    photParams_zp = PhotometricParameters(exptime=1, nexp=1, gain=1, effarea=effarea)
+    photParams = PhotometricParameters(gain=1.0, effarea=effarea)
     photParams_infinity = PhotometricParameters(gain=1.0, readnoise=0, darkcurrent=0,
-                                                othernoise=0)
+                                                othernoise=0, effarea=effarea)
     # lsstDefaults stores default values for the FWHMeff.
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/LSSTdefaults.py
     lsstDefaults = LSSTdefaults()
@@ -42,7 +44,9 @@ def calcM5(hardware, system, atmos, title='m5'):
     skyCounts = {}
     skyMag = {}
     gamma = {}
+    zpT = {}
     for f in system:
+        zpT[f] = system[f].calcZP_t(photParams_zp)
         m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
@@ -73,13 +77,12 @@ def calcM5(hardware, system, atmos, title='m5'):
         Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
                        - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         dCm_infinity[f] = Cm_infinity - Cm[f]
-    print title
-    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
+    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Zp_t Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
-        print '%s %.2f %.2f %.2f %.1f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
+        print '%s %.2f %.2f %.2f %.1f %.2f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
            %(f, lsstDefaults.FWHMeff(f),
              SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f)),
-             skyMag[f], skyCounts[f], Tb[f], Sb[f], kAtm[f],
+             skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
 
 
