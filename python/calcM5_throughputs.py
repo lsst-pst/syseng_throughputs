@@ -22,9 +22,12 @@ def calcM5(hardware, system, atmos, title='m5'):
     # photParams stores default values for the exposure time, nexp, size of the primary,
     #  readnoise, gain, platescale, etc.
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/PhotometricParameters.py
-    photParams = PhotometricParameters(gain=1)
-    photParams_infinity = PhotometricParameters(readnoise=0, darkcurrent=0,
-                                                othernoise=0, gain=1)
+    effarea = np.pi * (6.423/2.*100.)**2
+    photParams_zp = PhotometricParameters(exptime=1, nexp=1, gain=1, effarea=effarea,
+                                          readnoise=8.8, othernoise=0, darkcurrent=0.2)
+    photParams = PhotometricParameters(gain=1.0, effarea=effarea, readnoise=8.8, othernoise=0, darkcurrent=0.2)
+    photParams_infinity = PhotometricParameters(gain=1.0, readnoise=0, darkcurrent=0,
+                                                othernoise=0, effarea=effarea)
     # lsstDefaults stores default values for the FWHMeff.
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/LSSTdefaults.py
     lsstDefaults = LSSTdefaults()
