@@ -1,6 +1,7 @@
 # Create a set of files to replace the "baseline" files in the THROUGHPUTS repository.
 # Add header information that tracks the files here and also adds cutoff wavelength information.
 import os
+import shutil
 import subprocess
 import numpy as np
 from lsst.sims.photUtils import Bandpass, Sed
@@ -38,6 +39,8 @@ hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses=addLosses, a
 outDir = 'baseline'
 if not os.path.isdir(outDir):
     os.makedirs(outDir)
+
+shutil.copy('../README.md', os.path.join(outDir, 'README.md'))
 
 version = subprocess.check_output(['git', 'describe']).strip()
 sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
