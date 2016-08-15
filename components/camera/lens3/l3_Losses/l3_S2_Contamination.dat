@@ -2,7 +2,9 @@
 # Contact: Chuck Claver - cclaver@lsst.org
 #
 # This file contains the estimated losses on the LSST Camera lens 3 at surface 2 due to  contaminants.
-# Values have been taken directly from the spreadsheet LCA-18 row 31.
+# Values have been taken directly from the spreadsheet LCA-18, V24,
+# tab "Throughput Budget", row 32, col J-O.
+
 #
 # Specificaton & expected performance cases based on surface cleanliness level 500 according to 
 # Tribble's modified MIL-STD-1246C; no further degradation assumed (A. Rasmussen, SLAC).  Degradation

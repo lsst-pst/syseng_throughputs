@@ -2,7 +2,8 @@
 # Contact: Chuck Claver - cclaver@lsst.org
 #
 # This file contains the estimated losses on the LSST Camera lens 3 at surface 2 due to condensation of contaminants.
-# Values have been taken directly from the spreadsheet LCA-18 row 32.
+# Values have been taken directly from the spreadsheet LCA-18, V24,
+# tab "Throughput Budget", row 33, col J-O.
 #
 # Values here are placeholders for water and other volatiles.
 #
