@@ -2,7 +2,8 @@
 # Contact: Chuck Claver - cclaver@lsst.org
 #
 # This file contains the estimated losses on the LSST Camera filter at surface 1 due to condensation of contaminants.
-# Values have been taken directly from the spreadsheet LCA-18 row 37.
+# Values have been taken directly from the spreadsheet LCA-18, V24, 
+# tab "Throughput Budget", row 38, col J-O.
 #
 # Placeholder values here correspond to increasing outer layer thicknesses (H2O) by 2nm (theoretical) 
 # and 3nm (specification) over conditions at which filters were calibrated at the vendor. We compute a 
