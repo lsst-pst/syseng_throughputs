@@ -166,12 +166,19 @@ def buildFilters(filterDir, addLosses=True):
     If addLosses is True, the filter throughput curves are multiplied by the loss files.
     """
     # Read the filter files.
-    filterfiles = glob(os.path.join(filterDir, '*_band_Response.dat'))
+    filterGlassFiles = glob(os.path.join(filterDir, '*_band_glass.dat'))
     filters = {}
-    for f in filterfiles:
+    for f in filterGlassFiles:
         fname = os.path.split(f)[1].split('_')[0]
         filters[fname] = Bandpass()
         filters[fname].readThroughput(f)
+    filterCoatingFiles = glob(os.path.join(filterDir, '*_band_coating.dat'))
+    for f in filterCoatingFiles:
+        coating = Bandpass()
+        coating.readThroughput(f)
+        fname = os.path.split(f)[1].split('_')[0]
+        wavelen, sb = filters[fname].multiplyThroughputs(coating.wavelen, coating.sb)
+        filters[fname].setBandpass(wavelen, sb)    
     if addLosses:
         # Read and multiply the losses.
         loss = _readLosses(filterDir)
@@ -226,7 +233,6 @@ def buildLens(lensDir, addLosses=True):
     The glass response is multiplied by the coatings and (if addLosses is True),
       also the loss curves.
     """
-    lens = Bandpass()
     # Read the glass base file.
     glassfile = glob(os.path.join(lensDir, 'l*_Glass.dat'))
     if len(glassfile) != 1:
