@@ -2,6 +2,10 @@
 # File name: Telescope Throughput V6.xlsx
 # tab: Telescope Throughput Budget, rows: 157 158
 
+Take the wavelength ranges for each band as defined in tab [Filter bandpass]
+And take the values in tab [Telescope Throughput Budget] as the losses at the center of each band
+The curve is obtained by doing a linear interpolation using the six points
+
 300 0.98205
 301 0.98208
 302 0.98212
