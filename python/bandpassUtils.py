@@ -166,13 +166,13 @@ def buildFilters(filterDir, addLosses=True):
     If addLosses is True, the filter throughput curves are multiplied by the loss files.
     """
     # Read the filter files.
-    filterGlassFiles = glob(os.path.join(filterDir, '*_band_glass.dat'))
+    filterGlassFiles = glob(os.path.join(filterDir, '*_band_Glass.dat'))
     filters = {}
     for f in filterGlassFiles:
         fname = os.path.split(f)[1].split('_')[0]
         filters[fname] = Bandpass()
         filters[fname].readThroughput(f)
-    filterCoatingFiles = glob(os.path.join(filterDir, '*_band_coating.dat'))
+    filterCoatingFiles = glob(os.path.join(filterDir, '*_band_Coating.dat'))
     for f in filterCoatingFiles:
         coating = Bandpass()
         coating.readThroughput(f)
