@@ -7,13 +7,13 @@ import matplotlib.lines as mlines
 from lsst.sims.photUtils import Bandpass, Sed, SignalToNoise
 from lsst.sims.photUtils import PhotometricParameters, LSSTdefaults
 import bandpassUtils as bu
-
+from lsst.utils import getPackageDir
 
 filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
-def calcM5(hardware, system, atmos, title='m5'):
+def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
     """
     Calculate m5 values for all filters in hardware and system.
     Prints all values that go into "table 2" of the overview paper.
@@ -32,7 +32,8 @@ def calcM5(hardware, system, atmos, title='m5'):
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/LSSTdefaults.py
     lsstDefaults = LSSTdefaults()
     darksky = Sed()
-    darksky.readSED_flambda(os.path.join('../siteProperties', 'darksky.dat'))
+    darksky.readSED_flambda(os.path.join(getPackageDir('syseng_throughputs'),
+                                         'siteProperties', 'darksky.dat'))
     flatSed = Sed()
     flatSed.setFlatSED()
     m5 = {}
@@ -46,6 +47,8 @@ def calcM5(hardware, system, atmos, title='m5'):
     skyMag = {}
     gamma = {}
     zpT = {}
+    FWHMgeom = {}
+    FWHMeff = {}
     for f in system:
         zpT[f] = system[f].calcZP_t(photParams_zp)
         m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
@@ -80,12 +83,17 @@ def calcM5(hardware, system, atmos, title='m5'):
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Zp_t Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
+        FWHMeff[f] = lsstDefaults.FWHMeff(f)
+        FWHMgeom[f] = SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f))
         print '%s %.2f %.2f %.2f %.1f %.2f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
-           %(f, lsstDefaults.FWHMeff(f),
-             SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f)),
-             skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
-             gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
-
+           % (f, FWHMeff[f], FWHMgeom[f],
+              skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
+              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
+    if return_t2_values:
+        return {'FHWMeff': FWHMeff, 'FWHMgeom': FWHMgeom, 'skyMag': skyMag, 'skycounts': skyCounts,
+                'zpT': zpT, 'Tb': Tb, 'Sb': Sb, 'kAtm': kAtm,
+                'gamma': gamma, 'Cm': Cm, 'dCm_infinity': dCm_infinity,
+                'm5': m5, 'sourceCounts': sourceCounts}
 
     for f in filterlist:
         m5_cm = Cm[f] + 0.5*(skyMag[f] - 21.0) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
