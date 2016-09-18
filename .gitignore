@@ -1,3 +1,5 @@
+doc
+otherDocs
 *.dylib
 *.o
 *.os

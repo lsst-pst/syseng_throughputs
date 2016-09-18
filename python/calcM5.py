@@ -22,10 +22,10 @@ def calcM5(hardware, system, atmos, title='m5'):
     # photParams stores default values for the exposure time, nexp, size of the primary,
     #  readnoise, gain, platescale, etc.
     # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/PhotometricParameters.py
-    effarea = np.pi * (6.423/2.*100.)**2
+    effarea = np.pi * ((6.423/2.*100.)**2 ) #- (0.249/2.*100)**2)
     photParams_zp = PhotometricParameters(exptime=1, nexp=1, gain=1, effarea=effarea,
                                           readnoise=8.8, othernoise=0, darkcurrent=0.2)
-    photParams = PhotometricParameters(gain=1.0, effarea=effarea, readnoise=8.8, othernoise=0, darkcurrent=0.2)
+    photParams = PhotometricParameters(exptime=15, gain=1.0, effarea=effarea, readnoise=8.8, othernoise=0, darkcurrent=0.2)
     photParams_infinity = PhotometricParameters(gain=1.0, readnoise=0, darkcurrent=0,
                                                 othernoise=0, effarea=effarea)
     # lsstDefaults stores default values for the FWHMeff.
@@ -46,9 +46,14 @@ def calcM5(hardware, system, atmos, title='m5'):
     skyMag = {}
     gamma = {}
     zpT = {}
+    newFWHMeff = {}
+    for f in system:
+        newFWHMeff[f] = lsstDefaults.FWHMeff(f) 
+    #newFWHMeff = {'u':0.97, 'g':0.92, 'r':0.88, 'i':0.85, 'z':0.84, 'y':0.82}
+    newFWHMeff = {'u':0.77, 'g':0.73, 'r':0.70, 'i':0.67, 'z':0.65, 'y':0.63}
     for f in system:
         zpT[f] = system[f].calcZP_t(photParams_zp)
-        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
+        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=newFWHMeff[f])
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
@@ -86,6 +91,51 @@ def calcM5(hardware, system, atmos, title='m5'):
              skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
 
+    m5_SRD = {'u':23.9, 'g':25.0, 'r':24.7, 'i':24.0, 'z':23.3, 'y':22.1}
+    m5_SRD_min = {'u':23.4, 'g':24.6, 'r':24.3, 'i':23.6, 'z':22.9, 'y':21.7}
+    nVisit =  {'u':56, 'g':80, 'r':184, 'i':184, 'z':160, 'y':160}
+    nVisitTot = 0
+    m5s = {}
+    for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
+        nVisitTot += nVisit[f]
+        m5s[f] = round_sig(m5[f],3) #keep 3 significant digits for comparison
+    meetDesign = {}
+    meetMin = {}
+    timeD = {}
+    timeM = {}
+    timeDSum = 0
+    timeMSum = 0
+    for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
+        if m5s[f]>m5_SRD[f]-1e-5:
+            meetDesign[f] = 'Y'
+        else:
+            meetDesign[f] = 'N'
+        if m5s[f]>m5_SRD_min[f]-1e-5:
+            meetMin[f] = 'Y'
+        else:
+            meetMin[f] = 'N'
+        #timeD: additional visit time needed to meet Design spec. relative to planned time in band
+        #timeM: additional visit time needed to meet Min. spec. relative to planned time in band
+        if f == 'u':
+            timeD[f] = (10**((m5_SRD[f]-m5s[f])/2.5)-1)
+            timeM[f] = (10**((m5_SRD_min[f]-m5s[f])/2.5)-1)
+        else:
+            timeD[f] = (10**((m5_SRD[f]-m5s[f])/1.25)-1)
+            timeM[f] = (10**((m5_SRD_min[f]-m5s[f])/1.25)-1)
+        #total extra time needed over 10 years, relative to 10 years
+        timeDT = timeD[f]*nVisit[f]/nVisitTot
+        #total extra time needed over 10 years, relative to 10 years
+        timeMT = timeM[f]*nVisit[f]/nVisitTot
+        timeDSum += timeDT
+        timeMSum += timeMT
+    
+    for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
+        print '%s & %6.1f & %6.1f & %s & %6.1f & %s \\\\ \\hline'\
+           %(f, m5s[f], m5_SRD[f], meetDesign[f], m5_SRD_min[f], meetMin[f])
+    for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
+        print '%s & %6.1f & %6.1f & %s & %6.0f & %6.1f & %s & %6.0f \\\\ \\hline'\
+           %(f, m5s[f], m5_SRD[f], meetDesign[f], timeD[f]*100, m5_SRD_min[f], meetMin[f], timeM[f]*100)
+    print 'timeDSum = %8.1f %%, timeMSum = %8.1f %%' %(timeDSum*100, timeMSum*100)
 
     for f in filterlist:
         m5_cm = Cm[f] + 0.5*(skyMag[f] - 21.0) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
@@ -140,6 +190,8 @@ def calcM5(hardware, system, atmos, title='m5'):
     plt.savefig('../plots/system+sky' + title + '.png', format='png', dpi=600)
     return m5
 
+def round_sig(x, sig=2):
+    return round(x, sig-int(np.floor(np.log10(x)))-1)
 
 if __name__ == '__main__':
 
@@ -147,8 +199,8 @@ if __name__ == '__main__':
     # Note that this sets the detector to be the 'generic detector' (minimum of each vendor).
     defaultDirs = bu.setDefaultDirs(rootDir = '..')
     # To use a particular vendor, uncomment one of the following lines or edit as necessary.
-    # defaultDirs['detector'] = 'vendor1'
-    # defaultDirs['detector'] = 'vendor2'
+    #defaultDirs['mirror1'] = '../components/telescope/mirror1Ag'
+    #defaultDirs['mirror3'] = '../components/telescope/mirror3Ag'
 
     # Add losses to each component?
     addLosses = True
@@ -161,6 +213,5 @@ if __name__ == '__main__':
     atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
     m5 = calcM5(hardware, system, atmosphere, title='')
-
 
     plt.show()
