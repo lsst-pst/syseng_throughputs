@@ -158,12 +158,13 @@ def buildDetector(detectorDir, addLosses=True):
         qe.setBandpass(wavelen, sbMin)
     return qe
 
-def buildFilters(filterDir, addLosses=True):
+def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     """
     Build a filter throughput curve from the files in filterDir.
     Assumes there are files [filtername]-bandResponse.dat, together with a 'filterLosses' subdirectory containing loss files.
     Returns a dictionary (keyed by filter name) of the bandpasses for each filter.
     If addLosses is True, the filter throughput curves are multiplied by the loss files.
+    If shiftFilters is not None, the value (float) is the percent (1-2.5?) of the effective wavelength to shift the filter response by.
     """
     # Read the filter files.
     filterfiles = glob(os.path.join(filterDir, '*_band_Response.dat'))
@@ -186,6 +187,14 @@ def buildFilters(filterDir, addLosses=True):
             raise ValueError('Found values in filter response significantly below zero in %s filter' % f)
         # If they are just small errors in interpolation, set to zero.
         filters[f].sb[belowzero] = 0
+    if shiftFilters is not None:
+        # This is an extremely simple shift. See photoCal / FilterShift.py for more realistic shifts.
+        for f in filters:
+            effphi, effsb = filters[f].calcEffWavelen()
+            shift = shiftFilters/100.0 * effsb
+            filters[f].wavelen = filters[f].wavelen + shift
+            filters[f].resampleBandpass()
+            filters[f].sbTophi()
     return filters
 
 def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
@@ -303,7 +312,7 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     atmo.sb[belowzero] = 0
     return atmo
 
-def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None):
+def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None, shiftFilters=None):
     """
     Using directories for each component set by 'defaultDirs',
      builds the system (including atmosphere) and hardware throughput curves for each filter.
@@ -326,7 +335,7 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None)
     lens1 = buildLens(defaultDirs['lens1'], addLosses)
     lens2 = buildLens(defaultDirs['lens2'], addLosses)
     lens3 = buildLens(defaultDirs['lens3'], addLosses)
-    filters = buildFilters(defaultDirs['filters'], addLosses)
+    filters = buildFilters(defaultDirs['filters'], addLosses, shiftFilters=shiftFilters)
     mirror1 = buildMirror(defaultDirs['mirror1'], addLosses)
     mirror2 = buildMirror(defaultDirs['mirror2'], addLosses)
     mirror3 = buildMirror(defaultDirs['mirror3'], addLosses)
