@@ -1,5 +1,5 @@
 # Calculate m5 and table2 values using the SYSENG_THROUGHPUTS files. Saves figures to plots directory automatically.
-
+from __future__ import print_function
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -81,14 +81,14 @@ def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
         Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
                        - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         dCm_infinity[f] = Cm_infinity - Cm[f]
-    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Zp_t Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
+    print('Filter FWHMeff FWHMgeom SkyMag SkyCounts Zp_t Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts')
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
         FWHMeff[f] = lsstDefaults.FWHMeff(f)
         FWHMgeom[f] = SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f))
-        print '%s %.2f %.2f %.2f %.1f %.2f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
+        print('%s %.2f %.2f %.2f %.1f %.2f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
            % (f, FWHMeff[f], FWHMgeom[f],
               skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
-              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
+              gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f]))
     if return_t2_values:
         return {'FHWMeff': FWHMeff, 'FWHMgeom': FWHMgeom, 'skyMag': skyMag, 'skycounts': skyCounts,
                 'zpT': zpT, 'Tb': Tb, 'Sb': Sb, 'kAtm': kAtm,

@@ -1,5 +1,6 @@
 # syseng_throughputs #
 SysEng-approved LSST throughput curves
+The latest m5 depths are available in plots/table2: https://github.com/lsst-pst/syseng_throughputs/blob/master/plots/table2
 
 This repository provides the ultimate source of the throughput curves in the repository [lsst/throughputs](https://github.com/lsst/throughputs).
 
