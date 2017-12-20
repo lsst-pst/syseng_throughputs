@@ -25,9 +25,11 @@ if __name__ == '__main__':
     # Build the separate vendor detectors.
     qevendors = {}
     # Vendor 1
-    qevendors[1] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor1'), addLosses)
+    qevendors['itl'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum', 'itl'),
+                                              addLosses)
     # Vendor 2
-    qevendors[2] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor2'), addLosses)
+    qevendors['e2v'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum', 'e2v'),
+                                              addLosses)
     # Generic 'minimum' detector throughputs.
     qevendors['Min'] = bu.buildDetector(defaultDirs['detector'], addLosses)
     throughputs['detector'] = qevendors['Min']

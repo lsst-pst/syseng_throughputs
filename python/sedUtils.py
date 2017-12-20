@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from copy import deepcopy
 import numpy as np
@@ -58,9 +59,10 @@ def makeRedshiftedSeds(sedDict, redshifts):
     those redshifts are applied to those objects only. """
     # Check what kind of redshift object we received.
     if isinstance(redshifts, dict):
+        keys = list(redshifts.keys())
         # Loop over all the object types in the redshift dictionary.
-        for objtype in redshifts:
-            sedlist = sedDict[objtype].keys()
+        for objtype in keys:
+            sedlist = list(sedDict[objtype].keys())
             for sed in sedlist:
                 for z in redshifts[objtype]:
                     newsedname = sed + '_Z_%.3f' %(z)
@@ -69,7 +71,7 @@ def makeRedshiftedSeds(sedDict, redshifts):
         # Using the same redshift list for everything (except stars).
         for objtype in sedDict:
             if objtype != 'stars':
-                sedlist = sedDict[objtype].keys()
+                sedlist = list(sedDict[objtype].keys())
                 for sed in sedlist:
                     for z in redshifts:
                         newsedname = sed + '_Z_%.3f' %(z)
@@ -191,18 +193,18 @@ def calcAnyColor(mags, color1, color2):
 
 def printDmags(dmags, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
     """Print changes in magnitudes to the screen."""
-    print 'Delta mmag:'
+    print('Delta mmag:')
     writestring = "object"
     for f in filterlist:
         writestring += '\t %s ' %(f)
-    print writestring
+    print(writestring)
     for objtype in dmags:
-        print 'Object type: ', objtype
+        print('Object type: ', objtype)
         for s in dmags[objtype]:
             writestring = 'dm %s ' %(s)
             for f in filterlist:
                 writestring += ' %f ' %(dmags[objtype][s][f])
-            print writestring
+            print(writestring)
     return
 
 

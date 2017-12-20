@@ -1,6 +1,5 @@
 import os
 import matplotlib.pyplot as plt
-from lsst.sims.photUtils import Bandpass
 import bandpassUtils as bu
 
 # This script will combine the individual components of the camera and telescope,
@@ -23,9 +22,11 @@ if __name__ == '__main__':
     addLosses=True
     qevendors['loss'] = {}
     # Vendor 1
-    qevendors['loss'][1] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor1'), addLosses)
+    qevendors['loss']['itl'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum','itl'),
+                                                      addLosses)
     # Vendor 2
-    qevendors['loss'][2] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor2'), addLosses)
+    qevendors['loss']['e2v'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum', 'e2v'),
+                                                      addLosses)
     # Generic 'minimum' detector throughputs.
     qevendors['loss']['Min'] = bu.buildDetector(defaultDirs['detector'], addLosses)
     bu.plotBandpasses(qevendors['loss'], title='Combining Vendor Detector Responses Losses')
@@ -36,9 +37,11 @@ if __name__ == '__main__':
     addLosses = False
     # Build the separate vendor detectors.
     # Vendor 1
-    qevendors['noloss'][1] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor1'), addLosses)
+    qevendors['noloss']['itl'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum',
+                                                                                        'itl'), addLosses)
     # Vendor 2
-    qevendors['noloss'][2] = bu.buildVendorDetector(os.path.join(defaultDirs['detector'], 'vendor2'), addLosses)
+    qevendors['noloss']['e2v'] = bu.buildVendorDetector(defaultDirs['detector'].replace('joint_minimum',
+                                                                                        'e2v'), addLosses)
     # Generic 'minimum' detector throughputs.
     qevendors['noloss']['Min'] = bu.buildDetector(defaultDirs['detector'], addLosses)
     bu.plotBandpasses(qevendors['noloss'], title='Combining Vendor Detector Responses No Losses')
@@ -47,8 +50,8 @@ if __name__ == '__main__':
     compare = {}
     #compare['min_loss'] = qevendors['loss']['Min']
     #compare['min_noloss'] = qevendors['noloss']['Min']
-    compare['v1_losses'] = qevendors['loss'][1]
-    compare['v1_nolosses'] = qevendors['noloss'][1]
+    compare['itl_losses'] = qevendors['loss']['itl']
+    compare['itl_nolosses'] = qevendors['noloss']['itl']
     #compare['v2_losses'] = qevendors['loss'][2]
     #compare['v2_nolosses'] = qevendors['noloss'][2]
     bu.plotBandpasses(compare, title='No losses vs losses')

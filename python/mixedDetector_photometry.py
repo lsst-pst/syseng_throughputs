@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,10 +35,10 @@ def calcM5(hardware, system, atmos, title='m5'):
         skyMag[f] = darksky.calcMag(hardware[f])
         # Calculate the gamma value.
         gamma[f] = SignalToNoise.calcGamma(system[f], m5[f], photParams)
-    print title
-    print 'Filter m5 SourceCounts SkyCounts SkyMag Gamma'
+    print(title)
+    print('Filter m5 SourceCounts SkyCounts SkyMag Gamma')
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
-        print '%s %.2f %.1f %.2f %.2f %.6f' %(f, m5[f], sourceCounts[f], skyCounts[f], skyMag[f], gamma[f])
+        print('%s %.2f %.1f %.2f %.2f %.6f' %(f, m5[f], sourceCounts[f], skyCounts[f], skyMag[f], gamma[f]))
 
     # Show what these look like individually (add sky & m5 limits on throughput curves)
     plt.figure()
@@ -86,17 +87,17 @@ if __name__ == '__main__':
     atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     hardware['combo'], system['combo'] = bu.buildHardwareAndSystem(defaultDirs, atmosphereOverride=atmosphere)
     m5['combo'] = calcM5(hardware['combo'], system['combo'], atmosphere, title='combo')
-    genericDetector = defaultDirs['detector']
-    for det in [1, 2]:
-        defaultDirs['detector'] = os.path.join(genericDetector, 'vendor%d' %det)
+    detectors = ['itl', 'e2v']
+    for det in detectors:
+        defaultDirs['detector'].replace('joint_minimum', det)
         hardware[det], system[det] = bu.buildHardwareAndSystem(defaultDirs, atmosphereOverride=atmosphere)
-        m5[det] = calcM5(hardware[det], system[det], atmosphere, title='vendor%d' %(det))
+        m5[det] = calcM5(hardware[det], system[det], atmosphere, title=det)
 
     # Show what these look like (print m5 limits on throughput curves)
     plt.figure()
     for f in filterlist:
-        for det in [1, 2]:
-            if det == 1:
+        for det in detectors:
+            if det == 'itl':
                 linestyle = ':'
                 spacer= ' '
             else:
@@ -111,9 +112,9 @@ if __name__ == '__main__':
     plt.title('System total response curves')
 
     plt.figure()
-    for det in [1, 2]:
+    for det in detectors:
         for f in filterlist:
-            if det == 1:
+            if det == 'itl':
                 linestyle = ':'
             else:
                 linestyle = '-'
@@ -140,23 +141,23 @@ if __name__ == '__main__':
     mags = {}
     mags[1] = {}
     mags[2] = {}
-    for det in (1, 2):
+    for det in detectors:
         mags[det] = su.calcNatMags(system[det], seds)
-    dmags = su.calcDeltaMags(mags[2], mags[1], mmags=True, matchBlue=False)
+    dmags = su.calcDeltaMags(mags['itl'], mags['e2v'], mmags=True, matchBlue=False)
 
-    gi = su.calcGiColors(mags[1])
-    ug = su.calcAnyColor(mags[1], 'u', 'g')
+    gi = su.calcGiColors(mags['itl'])
+    ug = su.calcAnyColor(mags['itl'], 'u', 'g')
 
-    su.plotDmags(gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
-    su.plotDmagsSingle(gi, dmags, titletext='Color terms between detectors, as function of vendor1 g-i color')
+    su.plotDmags(gi, dmags, titletext='Color terms between detectors, as function of ITL g-i color')
+    su.plotDmagsSingle(gi, dmags, titletext='Color terms between detectors, as function of ITL g-i color')
     plt.ylim(-60, 60)
     plt.xlim(-1, 3)
     plt.grid()
 
     su.plotDmags(ug, dmags, colorname='u-g', xlim=[-1, 3],
-                titletext='Color terms between detectors, as function of vendor1 u-g color')
+                titletext='Color terms between detectors, as function of ITL u-g color')
     su.plotDmagsSingle(ug, dmags, colorname='u-g',
-                    titletext='Color terms between detectors, as function of vendor1 u-g color')
+                    titletext='Color terms between detectors, as function of ITL u-g color')
     plt.ylim(-60, 60)
     plt.xlim(-1, 3)
     plt.grid()

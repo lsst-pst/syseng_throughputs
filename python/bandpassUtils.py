@@ -1,4 +1,4 @@
-import os, re
+import os
 from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ def setDefaultDirs(rootDir=None):
     defaultDirs = {}
     if rootDir is None:
         rootDir = lsst.utils.getPackageDir('syseng_throughputs')
-    defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector')
+    defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector/joint_minimum')
     for lens in ('lens1', 'lens2', 'lens3'):
         defaultDirs[lens] = os.path.join(rootDir, 'components/camera', lens)
     defaultDirs['filters'] = os.path.join(rootDir, 'components/camera/filters')

@@ -141,9 +141,10 @@ def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     myline = mlines.Line2D([], [], color='k', linestyle='-', label='Dark sky AB mags/arcsec^2')
     handles.append(myline)
     # end of dark sky legend line
-    plt.legend(loc=(0.01, 0.69), handles=handles, fancybox=True, numpoints=1, fontsize='small')
+    plt.legend(loc=(0.01, 0.6), handles=handles, fancybox=True, numpoints=1, fontsize='small')
     plt.ylim(0, 1)
     plt.xlim(300, 1100)
+    plt.grid(True, alpha=0.5)
     plt.xlabel('Wavelength (nm)')
     plt.ylabel('Fractional Throughput Response')
     plt.title('System total response curves %s' %(title))
@@ -218,8 +219,8 @@ if __name__ == '__main__':
     # Note that this sets the detector to be the 'generic detector' (minimum of each vendor).
     defaultDirs = bu.setDefaultDirs(rootDir = '..')
     # To use a particular vendor, uncomment one of the following lines or edit as necessary.
-    # defaultDirs['detector'] = 'vendor1'
-    # defaultDirs['detector'] = 'vendor2'
+    # defaultDirs['detector'].replace('joint_mininimum', 'itl')
+    # defaultDirs['detector'].replace('joint_minimum', 'e2v')
 
     # Add losses to each component?
     addLosses = True
