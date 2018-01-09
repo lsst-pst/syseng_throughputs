@@ -1,5 +1,5 @@
+from __future__ import print_function
 # Calculate m5 and table2 values using the *throughputs* repo files. Does NOT save figures.
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -70,7 +70,7 @@ def calcM5(hardware, system, atmos, title='m5'):
         # Exptime should be 30 seconds and X=1.0
         exptime = photParams.exptime * photParams.nexp
         if exptime != 30.0:
-            print "Whoa, exposure time was not as expected - got %s not 30 seconds. Please edit Cm calculation." %(exptime)
+            print("Whoa, exposure time was not as expected - got %s not 30 seconds. Please edit Cm calculation." %(exptime))
         # Assumes atmosphere used in system throughput is X=1.0
         X = 1.0
         Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
@@ -80,14 +80,14 @@ def calcM5(hardware, system, atmos, title='m5'):
         Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21)
                        - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f)))
         dCm_infinity[f] = Cm_infinity - Cm[f]
-    print title
-    print 'Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts'
+    print(title)
+    print('Filter FWHMeff FWHMgeom SkyMag SkyCounts Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts')
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
-        print '%s %.2f %.2f %.2f %.1f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
-           %(f, lsstDefaults.FWHMeff(f),
-             SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f)),
-             skyMag[f], skyCounts[f], Tb[f], Sb[f], kAtm[f],
-             gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f])
+        print('%s %.2f %.2f %.2f %.1f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'
+              %(f, lsstDefaults.FWHMeff(f),
+                SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f)),
+                skyMag[f], skyCounts[f], Tb[f], Sb[f], kAtm[f],
+                gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f]))
 
     # Show what these look like individually (add sky & m5 limits on throughput curves)
     plt.figure()
