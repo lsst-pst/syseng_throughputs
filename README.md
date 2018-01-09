@@ -23,6 +23,27 @@ of this repository directly - the curves in the throughputs repository
 are constructed from these curves, and can be traced through the git
 SHA1 and release tags.
 
+# Release 1.3: #
+
+The primary update here is in the detector response curves.
+The QE response curves here are the result of measurements of multiple
+chips provided by each vendor, ITL and E2V. The measurements have been
+averaged across multiple CCDs; the default (single) 'generic' curve remains
+the minimum QE response at each wavelength between both vendors.
+
+Other minor updates include additional python code to allow scaling
+of the FWHM at different airmasses and wavelengths (according to
+details provided in Document-18208 and Document-20160), and a jupyter
+notebook which can provide latex-formatted content of Table 2 from the
+overview paper.
+
+# Release 1.2: #
+
+This is primarily an update to the python code in the repository, using
+corrected and updated readnoise values (which results in corresponding
+changes to m5, particularly in the u band).
+
+
 # As of release 1.1: #
 
 ## Camera Components ##
