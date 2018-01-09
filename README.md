@@ -30,6 +30,7 @@ The QE response curves here are the result of measurements of multiple
 chips provided by each vendor, ITL and E2V. The measurements have been
 averaged across multiple CCDs; the default (single) 'generic' curve remains
 the minimum QE response at each wavelength between both vendors.
+These curves were provided by Steve Ritz in December, 2017.
 
 Other minor updates include additional python code to allow scaling
 of the FWHM at different airmasses and wavelengths (according to
