@@ -5,7 +5,7 @@
 #
 #  Set environment variable SYSENG_THROUGHPUTS_DIR to be the root of syseng_throughputs,
 #   (automatically done if package set up via eups).
-
+from __future__ import print_function
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,8 +31,8 @@ def calcEffWavelen(hardware, title, throughputDir=None):
                                                          'atmos/atmos_%d.dat' %(int(X*10))))
 
     atmoskeys = sorted(atmos.keys())
-    print title
-    print '    %s' %('    '.join(atmoskeys))
+    print(title)
+    print('    %s' %('    '.join(atmoskeys)))
     system = Bandpass()
     effsb = {}
     for f in ['u', 'g', 'r', 'i', 'z', 'y']:
@@ -41,7 +41,7 @@ def calcEffWavelen(hardware, title, throughputDir=None):
             system.wavelen, system.sb = hardware[f].multiplyThroughputs(atmos[k].wavelen, atmos[k].sb)
             effphi, effsb[k] = system.calcEffWavelen()
             writestring += '%.2f ' %(effsb[k])
-        print writestring
+        print(writestring)
 
 if __name__ == '__main__':
 

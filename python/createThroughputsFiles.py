@@ -1,5 +1,6 @@
 # Create a set of files to replace the "baseline" files in the THROUGHPUTS repository.
 # Add header information that tracks the files here and also adds cutoff wavelength information.
+from __future__ import print_function
 import os
 import shutil
 import subprocess
@@ -44,7 +45,7 @@ shutil.copy('../README.md', os.path.join(outDir, 'README.md'))
 
 version = subprocess.check_output(['git', 'describe']).strip()
 sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
-print "version", version, "sha1", sha1
+print("version", version, "sha1", sha1)
 versioninfo = '# Version %s\n'%(version)
 versioninfo += '# sha1 %s\n' %(sha1)
 

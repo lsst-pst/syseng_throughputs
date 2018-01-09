@@ -13,6 +13,7 @@ filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
+plotformat = 'png'
 
 def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     """
@@ -106,7 +107,7 @@ def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     plt.figure()
     for f in filterlist:
         plt.plot(system[f].wavelen, system[f].sb, color=filtercolors[f], linewidth=2, label=f)
-    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='X=1.0')
+    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='X=%.1f' % X)
     plt.legend(loc='center right', fontsize='smaller')
     plt.xlim(300, 1100)
     plt.ylim(0, 1)
@@ -114,7 +115,7 @@ def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     plt.ylabel('Throughput')
     plt.title('System Throughputs')
     plt.grid(True)
-    plt.savefig('../plots/throughputs.png', format='png')
+    plt.savefig('../plots/throughputs%s.%s' % (title, plotformat), format=plotformat)
 
     plt.figure()
     ax = plt.gca()
@@ -148,7 +149,7 @@ def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     plt.xlabel('Wavelength (nm)')
     plt.ylabel('Fractional Throughput Response')
     plt.title('System total response curves %s' %(title))
-    plt.savefig('../plots/system+sky' + title + '.png', format='png', dpi=600)
+    plt.savefig('../plots/system+sky%s.%s' % (title, plotformat), format=plotformat, dpi=600)
     return m5
 
 
@@ -225,10 +226,10 @@ if __name__ == '__main__':
     # Add losses to each component?
     addLosses = True
 
-    # Build the system and hardware throughput curves (without aerosols, with X=1.0).
-    #atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10.dat')
-    #hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
-    #m5 = calcM5(hardware, system, atmosphere, title='')
+    # Build the system and hardware throughput curves (with aerosols, with X=1.2).
+    atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='pachonModtranAtm_12_aerosol.dat')
+    hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
+    m5 = calcM5(hardware, system, atmosphere, title='X=1.2', X=1.2)
 
     atmosphere = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
