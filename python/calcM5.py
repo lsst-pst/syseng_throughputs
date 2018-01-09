@@ -13,7 +13,8 @@ filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
-def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
+
+def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     """
     Calculate m5 values for all filters in hardware and system.
     Prints all values that go into "table 2" of the overview paper.
@@ -51,7 +52,9 @@ def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
     FWHMeff = {}
     for f in system:
         zpT[f] = system[f].calcZP_t(photParams_zp)
-        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=lsstDefaults.FWHMeff(f))
+        eff_wavelen = system[f].calcEffWavelen()[1]
+        FWHMeff[f] = scale_seeing(0.62, eff_wavelen, X)[0]
+        m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=FWHMeff[f])
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
         sourceCounts[f] = flatSed.calcADU(system[f], photParams=photParams)
@@ -72,39 +75,38 @@ def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
         # Calculate the Cm and Cm_Infinity values.
         # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
         # Assumes atmosphere used in system throughput is X=1.0
-        X = 1.0
-        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
+        Cm[f] = (m5[f] - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/FWHMeff[f])
                  - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
         m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
-                                     FWHMeff=lsstDefaults.FWHMeff(f))
-        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
+                                     FWHMeff=FWHMeff[f])
+        Cm_infinity = (m5inf - 0.5*(skyMag[f] - 21) - 2.5*np.log10(0.7/FWHMeff[f])
                        - 1.25*np.log10((photParams.exptime*photParams.nexp)/30.0) + kAtm[f]*(X-1.0))
         dCm_infinity[f] = Cm_infinity - Cm[f]
     print('Filter FWHMeff FWHMgeom SkyMag SkyCounts Zp_t Tb Sb kAtm Gamma Cm dCm_infinity m5 SourceCounts')
     for f in ('u', 'g' ,'r', 'i', 'z', 'y'):
-        FWHMeff[f] = lsstDefaults.FWHMeff(f)
-        FWHMgeom[f] = SignalToNoise.FWHMeff2FWHMgeom(lsstDefaults.FWHMeff(f))
+        FWHMgeom[f] = SignalToNoise.FWHMeff2FWHMgeom(FWHMeff[f])
         print('%s %.2f %.2f %.2f %.1f %.2f %.3f %.3f %.4f %.6f %.2f %.2f %.2f %.2f'\
            % (f, FWHMeff[f], FWHMgeom[f],
               skyMag[f], skyCounts[f], zpT[f], Tb[f], Sb[f], kAtm[f],
               gamma[f], Cm[f], dCm_infinity[f], m5[f], sourceCounts[f]))
+
+    for f in filterlist:
+        m5_cm = Cm[f] + 0.5*(skyMag[f] - 21.0) + 2.5*np.log10(0.7/FWHMeff[f]) - kAtm[f]*(X-1.0)
+        if m5_cm - m5[f] > 0.001:
+            raise ValueError('Cm calculation for %s band is incorrect! m5_cm != m5_snr' %f)
+
     if return_t2_values:
-        return {'FHWMeff': FWHMeff, 'FWHMgeom': FWHMgeom, 'skyMag': skyMag, 'skycounts': skyCounts,
+        return {'FWHMeff': FWHMeff, 'FWHMgeom': FWHMgeom, 'skyMag': skyMag, 'skycounts': skyCounts,
                 'zpT': zpT, 'Tb': Tb, 'Sb': Sb, 'kAtm': kAtm,
                 'gamma': gamma, 'Cm': Cm, 'dCm_infinity': dCm_infinity,
                 'm5': m5, 'sourceCounts': sourceCounts}
-
-    for f in filterlist:
-        m5_cm = Cm[f] + 0.5*(skyMag[f] - 21.0) + 2.5*np.log10(0.7/lsstDefaults.FWHMeff(f))
-        if m5_cm - m5[f] > 0.001:
-            raise ValueError('Cm calculation for %s band is incorrect! m5_cm != m5_snr' %f)
 
     # Show what these look like individually (add sky & m5 limits on throughput curves)
     plt.figure()
     for f in filterlist:
         plt.plot(system[f].wavelen, system[f].sb, color=filtercolors[f], linewidth=2, label=f)
-    plt.plot(atmosphere.wavelen, atmosphere.sb, 'k:', label='X=1.0')
+    plt.plot(atmos.wavelen, atmos.sb, 'k:', label='X=1.0')
     plt.legend(loc='center right', fontsize='smaller')
     plt.xlim(300, 1100)
     plt.ylim(0, 1)
@@ -147,6 +149,67 @@ def calcM5(hardware, system, atmos, title='m5', return_t2_values=False):
     plt.title('System total response curves %s' %(title))
     plt.savefig('../plots/system+sky' + title + '.png', format='png', dpi=600)
     return m5
+
+
+def get_effwavelens(system_bandpasses, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
+    """Calculate the effective wavelengths.
+
+    Parameters
+    ----------
+    system_bandpasses: dict of ~lsst.sims.photUtils.Bandpass
+        The bandpasses for the system.
+
+    Returns
+    -------
+    numpy.ndarray
+        The effective wavelength values, in a numpy array.
+        Order matches filterlist.
+    """
+    eff_wavelen = np.zeros(len(filterlist), float)
+    for i, f in enumerate(filterlist):
+        eff_wavelen[i] = system_bandpasses[f].calcEffWavelen()[1]
+    return eff_wavelen
+
+def scale_seeing(fwhm_500, eff_wavelen, airmass=1.0):
+    """Calculate the FWHMeff and FWHMgeom given FWHM_500.
+
+    Parameters
+    ----------
+    fwhm_500 : float
+        The FWHM_500 (FWHM at 500nm at zenith). Fiducial values is 0.6".
+    eff_wavelen : numpy.ndarray
+        The effective wavelengths of the system bandpasses.
+        Can be calculated using get_effwavelens.
+    airmass : float or numpy.ndarray
+        The airmass at which to calculate the FWHMeff and FWHMgeom values.
+        Default 1.0.
+        Can be a single value or a numpy array.
+
+    Returns
+    -------
+    numpy.ndarray, numpy.ndarray
+        FWHMeff, FWHMgeom: both are the same shape numpy.ndarray.
+        If airmass is a single value, FWHMeff & FWHMgeom are 1-d arrays,
+        with the same order as eff_wavelen (i.e. eff_wavelen[0] = u, then FWHMeff[0] = u).
+        If airmass is a numpy array, FWHMeff and FWHMgeom are 2-d arrays,
+        in the order of <filter><airmass> (i.e. eff_wavelen[0] = u, 1-d array over airmass range).
+    """
+    airmass_correction = np.power(airmass, 0.6)
+    wavelen_correction = np.power(500.0 / eff_wavelen, 0.3)
+    # telSeeing = 0.25”, opticalDesign = 0.08”, and cameraSeeing = 0.30”.
+    # Document-20160: total system contribution at zenith = 0.4" (add above, in quadrature)
+    if isinstance(airmass, np.ndarray):
+        fwhm_system = 0.4 * np.outer(np.ones(len(wavelen_correction)), airmass_correction)
+        fwhm_atmo = fwhm_500 * np.outer(wavelen_correction, airmass_correction)
+    else:
+        fwhm_system = 0.4 * airmass_correction
+        fwhm_atmo = fwhm_500 * wavelen_correction * airmass_correction
+    # Calculate combined FWHMeff.
+    fwhm_eff = 1.16 * np.sqrt(fwhm_system**2 + 1.04 * fwhm_atmo**2)
+    # Translate to FWHMgeom.
+    fwhm_geom = 0.822 * fwhm_eff + 0.052
+    return fwhm_eff, fwhm_geom
+
 
 
 if __name__ == '__main__':
