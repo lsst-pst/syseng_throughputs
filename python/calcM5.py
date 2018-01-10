@@ -53,8 +53,7 @@ def calcM5(hardware, system, atmos, title='m5', X=1.0, return_t2_values=False):
     FWHMeff = {}
     for f in system:
         zpT[f] = system[f].calcZP_t(photParams_zp)
-        eff_wavelen = system[f].calcEffWavelen()[1]
-        FWHMeff[f] = scale_seeing(0.62, eff_wavelen, X)[0]
+        FWHMeff[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
         m5[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams, FWHMeff=FWHMeff[f])
         fNorm = flatSed.calcFluxNorm(m5[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
