@@ -137,7 +137,8 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
                      + d.kAtm.loc[f] * (X - 1.0))
         d.dCm_double.loc[f] = Cm_infinity - Cm_double
 
-    m5_cm = d.Cm + 0.5*(d.skyMag - 21.0) + 2.5*np.log10(0.7/d.FWHMeff) - d.kAtm*(X-1.0)
+    m5_cm = (d.Cm + 0.5*(d.skyMag - 21.0) + 2.5*np.log10(0.7/d.FWHMeff) - d.kAtm*(X-1.0)
+             + 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0))
     if np.any(m5_cm - d.m5 > 0.001):
         raise ValueError('m5 from Cm does not match m5 from photUtils.')
     return d
