@@ -17,14 +17,19 @@ from lsst.sims.photUtils import Bandpass
 #   lens components, the glass throughput curve must be smoothed by a savitzky_golay function.
 
 belowZeroThreshhold = -1.0e-15
+filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
+filtercolors = {'u':'b', 'g':'c', 'r':'g',
+                'i':'y', 'z':'r', 'y':'m'}
 
 def setDefaultDirs(rootDir=None):
     """
     Returns a dictionary with the default directory locations of each component of the system throughput.
-    The default value for each component will mirror the expected values in the syseng_throughputs repository, with
-     the defaultDirs['detector'] value pointing to the directory common to all vendors (thus would build a generic detector using the minimum values).
+    The default value for each component will mirror the expected values in the syseng_throughputs repository,
+    with the defaultDirs['detector'] value pointing to the directory common to all vendors
+    (thus would build a generic detector using the minimum values).
     """
-    # Set SYSENG_THROUGHPUTS_DIR to the root dir for syseng_throughputs ('setup syseng_throughputs' will do this automatically)
+    # Set SYSENG_THROUGHPUTS_DIR to the root dir for syseng_throughputs
+    # ('setup syseng_throughputs' will do this automatically)
     defaultDirs = {}
     if rootDir is None:
         rootDir = lsst.utils.getPackageDir('syseng_throughputs')
@@ -36,6 +41,7 @@ def setDefaultDirs(rootDir=None):
         defaultDirs[mirror] = os.path.join(rootDir, 'components/telescope', mirror)
     defaultDirs['atmosphere'] = os.path.join(rootDir, 'siteProperties')
     return defaultDirs
+
 
 def _readLosses(componentDir):
     """
@@ -61,6 +67,7 @@ def _readLosses(componentDir):
     loss = Bandpass()
     loss.readThroughputList(lossfiles)
     return loss
+
 
 def _readCoatings(componentDir):
     """
@@ -91,7 +98,8 @@ def _readCoatings(componentDir):
 def buildVendorDetector(vendorDir, addLosses=True):
     """
     Builds a detector response from the files in vendorDir, by reading the *_QE.dat
-      and *_Losses subdirectory for a single version of the detector.
+    and *_Losses subdirectory for a single version of the detector.
+
     Returns a Bandpass object.
     If addLosses is True, the QE curve is multiplied by the losses in the *Losses.dat files.
     If addLosses is False, the QE curve does not have any losses included.
@@ -116,21 +124,23 @@ def buildVendorDetector(vendorDir, addLosses=True):
     qe.sb[belowzero] = 0
     return qe
 
+
 def buildDetector(detectorDir, addLosses=True):
     """
     Builds a detector response from 'detectorDir', potentially from multiple vendors.
     Returns a bandpass object.
     Behavior depends on contents of 'detectorDir':
-      if 'detectorDir' contains a *_QE.dat (and a *_Losses subdirectory, if addLosses=True)
-       it will be treated as an individual vendor.
-      if 'detectorDir' does not contain these files, but does contain subdirectories which do,
-       all of the subdirectories which contain *_QE.dat and _Losses subdirectories will
-       be read and assumed to be individual vendors; the resulting response curve will
-       be the *MINIMUM* value of the response at each wavelength.
+    * if 'detectorDir' contains a *_QE.dat (and a *_Losses subdirectory, if addLosses=True)
+    it will be treated as an individual vendor.
+    * if 'detectorDir' does not contain these files, but does contain subdirectories which do,
+    all of the subdirectories which contain *_QE.dat and _Losses subdirectories will
+    be read and assumed to be individual vendors; the resulting response curve will
+    be the *MINIMUM* value of the response at each wavelength.
+
     In both cases, the *QE.dat and *Losses files will be read and combined using
-     bandpassUtils.buildVendorDetector.
+    bandpassUtils.buildVendorDetector.
     The value of addLosses will be passed to buildVendorDetector - if True, losses are
-      included in the returned response curve.
+    included in the returned response curve.
     """
     try:
         # Try to treat this as a single vendor.
@@ -158,13 +168,17 @@ def buildDetector(detectorDir, addLosses=True):
         qe.setBandpass(wavelen, sbMin)
     return qe
 
+
 def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     """
     Build a filter throughput curve from the files in filterDir.
-    Assumes there are files [filtername]-bandResponse.dat, together with a 'filterLosses' subdirectory containing loss files.
+    Assumes there are files [filtername]-bandResponse.dat, together with a 'filterLosses' subdirectory
+    containing loss files.
+
     Returns a dictionary (keyed by filter name) of the bandpasses for each filter.
     If addLosses is True, the filter throughput curves are multiplied by the loss files.
-    If shiftFilters is not None, the value (float) is the percent (1-2.5?) of the effective wavelength to shift the filter response by.
+    If shiftFilters is not None, the value (float) is the percent (1-2.5?) of the effective wavelength
+    to shift the filter response by.
     """
     # Read the filter files.
     filterfiles = glob(os.path.join(filterDir, '*_band_Response.dat'))
@@ -197,11 +211,11 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
             filters[f].sbTophi()
     return filters
 
+
 def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     """
     Method brought from Chuck Claver's makeLens*.ipynb notebook.
-    Smoothes the wavelength response
-     of the borosilicate glass and returns a smoothed throughput curve.
+    Smoothes the wavelength response of the borosilicate glass and returns a smoothed throughput curve.
     """
     # y = throughput for lenses
     try:
@@ -225,15 +239,15 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     y = np.concatenate((firstvals, y, lastvals))
     return np.convolve(m[::-1], y, mode='valid')
 
+
 def buildLens(lensDir, addLosses=True):
     """
     Build the lens throughput curve from the files in lensDir.
     Returns a bandpass object.
     The coatings for the lens are in *_Coatings, the loss files are in *_Losses.
-    The borosilicate glass throughput is in l*_Glass.dat; this file is smoothed using the
-     savitzsky_golay function.
-    The glass response is multiplied by the coatings and (if addLosses is True),
-      also the loss curves.
+    The borosilicate glass throughput is in l*_Glass.dat;
+    this file is smoothed using the savitzsky_golay function.
+    The glass response is multiplied by the coatings and (if addLosses is True), also the loss curves.
     """
     lens = Bandpass()
     # Read the glass base file.
@@ -266,6 +280,7 @@ def buildLens(lensDir, addLosses=True):
     lens.sb[belowzero] = 0
     return lens
 
+
 def buildMirror(mirrorDir, addLosses=True):
     """
     Build a mirror throughput curve.
@@ -294,6 +309,7 @@ def buildMirror(mirrorDir, addLosses=True):
     mirror.sb[belowzero] = 0
     return mirror
 
+
 def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     """
     Read an atmosphere throughput curve, from the default location 'atmosDir'
@@ -311,6 +327,7 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     # If they are just small errors in interpolation, set to zero.
     atmo.sb[belowzero] = 0
     return atmo
+
 
 def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None, shiftFilters=None):
     """
@@ -362,6 +379,7 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None,
         system[f].setBandpass(wavelen, hw_sb*atmosphere.sb)
     return hardware, system
 
+
 def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlegend=True,
                    linestyle='-', linewidth=2):
     """
@@ -369,7 +387,8 @@ def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlege
 
     title = plot title
     newfig = (True/False) start a new figure or use the active matplotlib figure
-    savefig = (True/False) save the figure to disk with default name title.png or throughputs.png if title not defined
+    savefig = (True/False) save the figure to disk with default name title.png or throughputs.png
+    if title not defined
     addLegend = (True/False) add a legend to the plot
     linestyle = matplotlib linestyle (default '-') for the throughput curve lines
     linewidth = matplotlib linewidth (default 2) for the throughput curve lines.
@@ -379,7 +398,6 @@ def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlege
         plt.figure()
     # Plot the bandpass curves.  Try to sort by filter name ugrizy if those are the keys.
     names = bandpassDict.keys()
-    filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
     if set(names).issubset(set(filterlist)):
         newnames = []
         for f in filterlist:
@@ -388,20 +406,20 @@ def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlege
         names = newnames
     for f in names:
         plt.plot(bandpassDict[f].wavelen, bandpassDict[f].sb, marker="", linestyle=linestyle,
-                   linewidth=linewidth, label=f)
+                   linewidth=linewidth, color=filtercolors[f], label=f)
     # Only draw the legend if desired (many bandpassDicts plotted together could make the legend unwieldy).
     if addlegend:
         plt.legend(loc='lower right', numpoints=1, fancybox=True, fontsize='smaller')
     # Limit wavelengths to the LSST range.
     plt.xlim(300, 1150)
     plt.ylim(0, 1)
-    plt.xlabel('Wavelength (nm)')
-    plt.ylabel('Fractional Throughput Response')
+    plt.xlabel('Wavelength (nm)', fontsize='x-large')
+    plt.ylabel('Fractional Throughput Response', fontsize='x-large')
     # Only add the grid if it's a new figure (otherwise, it toggles on/off).
     plt.grid(True)
     # Add a plot title.
     if title != None:
-        plt.title(title)
+        plt.title(title, fontsize='x-large')
     # Save the figure, if desired.
     if savefig:
         figformat = 'png'

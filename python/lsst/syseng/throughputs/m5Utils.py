@@ -10,6 +10,10 @@ filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
+# Fiducial M5 values from the SRD
+m5_fid = {'u': 23.9, 'g': 25.0, 'r': 24.7, 'i': 24.0, 'z': 23.3, 'y': 22.1}
+m5_min = {'u': 23.4, 'g': 24.6, 'r': 24.3, 'i': 23.6, 'z': 22.9, 'y': 21.7}
+
 
 def get_effwavelens(system_bandpasses, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
     """Calculate the effective wavelengths.
@@ -33,7 +37,7 @@ def get_effwavelens(system_bandpasses, filterlist=('u', 'g', 'r', 'i', 'z', 'y')
 def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
            readnoise=8.8, othernoise=0, darkcurrent=0.2,
            effarea=np.pi*(6.423/2*100)**2, X=1.0):
-    """
+    """Calculate values which are related to m5 (basically 'table2' of overview paper).
 
     Parameters
     ----------
@@ -92,9 +96,12 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
 
     # Now set up dataframe. filters x properties.
     properties = ['FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
-                  'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts']
+                  'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts',
+                  'm5_fid', 'm5_min']
     d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
     for f in system:
+        d.m5_fid.loc[f] = m5_fid[f]
+        d.m5_min.loc[f] = m5_min[f]
         d.Zp_t.loc[f] = system[f].calcZP_t(photParams_zp)
         d.FWHMeff.loc[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
         d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052

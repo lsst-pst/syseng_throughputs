@@ -7,6 +7,8 @@ import matplotlib.lines as mlines
 from lsst.utils import getPackageDir
 from lsst.sims.photUtils import Sed
 
+figformat = 'pdf'
+
 
 def readPhotSeds(sedDir=None):
     """
@@ -23,7 +25,8 @@ def readPhotSeds(sedDir=None):
                          'km10_6000.fits_g45', 'km10_5250.fits_g45',
                          'km10_4500.fits_g45', 'm3.0Full.dat']
     sedlists['white_dwarf'] = ['wd_H_100000_80.dat', 'wd_H_15000_80.dat', 'wd_H_50000_80.dat',
-                               'wd_H_5500_80.dat', 'wd_He_10000_80.dat', 'wd_He_15000_80.dat', 'wd_He_5500_80.dat']
+                               'wd_H_5500_80.dat', 'wd_He_10000_80.dat', 'wd_He_15000_80.dat',
+                               'wd_He_5500_80.dat']
     sedlists['sn'] = ['sn1a_15.0.dat', 'sn1a_20.0.dat', 'sn1a_10.0.dat']
     sedlists['galaxies'] = ['Sa_template_norm.sed.dat', 'Sdm_template_norm.sed0.dat',
                             'Ell2_template_norm.sed.dat']
@@ -41,22 +44,27 @@ def readPhotSeds(sedDir=None):
             sedDict[objtype][s].readSED_flambda(os.path.join(sedDir, objtype, s))
     return sedDict
 
+
 def readAnySeds(inputfileList, sedDir='.'):
     """Read the seds in a list and store them in a format appropriate for use with the
-    rest of these routines. sedDir (if set) can be the root directory for the files in the list."""
-    # Read the files. We'll store them in a key called 'any' so that this dictionary looks like sedDict from above.
+    rest of these routines. sedDir (if set) can be the root directory for the files in the list.
+    """
+    # Read the files. We'll store them in a key called 'any' so that this dictionary looks
+    # like sedDict from above.
     sedDict = {}
     sedDict['any'] = {}
-    for f in inputfileList:
-        sedDict['any'][f] = Sed()
-        sedDict['any'][f].readSED_flambda(os.path.join(sedDir, filename))
+    for filename in inputfileList:
+        sedDict['any'][filename] = Sed()
+        sedDict['any'][filename].readSED_flambda(os.path.join(sedDir, filename))
     return sedDict
+
 
 def makeRedshiftedSeds(sedDict, redshifts):
     """Redshift the quasar, galaxies and SN by the amounts given in redshifts.
     If redshift is a numpy array, all objects except stars are redshifted to the same values.
     If redshift is a dictionary containing numpy arrays in the 'quasar', 'sn' or 'galaxies' keys, then
-    those redshifts are applied to those objects only. """
+    those redshifts are applied to those objects only.
+    """
     # Check what kind of redshift object we received.
     if isinstance(redshifts, dict):
         keys = list(redshifts.keys())
@@ -78,10 +86,12 @@ def makeRedshiftedSeds(sedDict, redshifts):
                         sedDict[objtype][newsedname] = redshiftSingleSED(sedDict[objtype][sed], z)
     return sedDict
 
+
 def redshiftSingleSED(sed_in, z):
     # Make a copy of the input SED, as otherwise we will overwrite original arrays.
     sed_out = deepcopy(sed_in)
-    # Set dimming False just to keep approximate fnu normalization constant (makes it easier to plot seds on same figure)
+    # Set dimming False just to keep approximate fnu normalization constant
+    # (makes it easier to plot seds on same figure)
     sed_out.redshiftSED(z, dimming=False)
     return sed_out
 
@@ -90,8 +100,8 @@ def matchSedsBp(sedDict, bpDict, refFilter=None):
     """
     Match the wavelength ranges for all the Seds and the bandpass dictionary.
     This will speed up later calculation of magnitudes (if you're doing a lot of them),
-     but is not strictly necessary.
-     """
+    but is not strictly necessary.
+    """
     if refFilter == None:
         refFilter = bpDict.keys()[0]
     wavelen_match = bpDict[refFilter].wavelen
@@ -126,6 +136,7 @@ def calcNatMags(bandpassDict, sedDict):
                 mags[objtype][s][f] = sedDict[objtype][s].calcMag(bandpassDict[f])
     return mags
 
+
 def calcInstMags(bandpassDict, sedDict, photParams):
     """
     Calculate instrumental magnitudes for each SED, in all bandpasses.
@@ -144,10 +155,11 @@ def calcInstMags(bandpassDict, sedDict, photParams):
 
 def calcDeltaMags(mags1, mags2, mmags=True, matchBlue=False):
     """
-    Calculate the difference in magnitudes between two magnitudes, mags calculated as above (mag[objtype][sedname][filter])
+    Calculate the difference in magnitudes between two magnitudes,
+    mags calculated as above (mag[objtype][sedname][filter])
     If 'mmags' is True, then returns delta mags in mmags.
     If 'matchBlue' is True, then scales change in magnitude between mags1 and mags2 so that the blue
-     star 'km10_7250.fits_g45' has zero magnitude change.
+    star 'km10_7250.fits_g45' has zero magnitude change.
     """
     dmags = {}
     for objtype in mags1:
@@ -164,7 +176,7 @@ def calcDeltaMags(mags1, mags2, mmags=True, matchBlue=False):
     if matchBlue:
         # Calculate offset to apply.
         offset = {}
-        for f in dmags_filters:
+        for f in dmags['stars']['km10_7250.fits_g45']:
             offset[f] = dmags['stars']['km10_7250.fits_g45'][f]
         # Apply offset.
         for objtype in dmags:
@@ -172,6 +184,7 @@ def calcDeltaMags(mags1, mags2, mmags=True, matchBlue=False):
                 for f in dmags[objtype][sedname]:
                     dmags[objtype][sedname][f] = dmags[objtype][sedname][f] - offset[f]
     return dmags
+
 
 def calcGiColors(mags):
     """Calculate the g-i colors of objects in a set of magnitudes, mags calculated as above."""
@@ -182,8 +195,11 @@ def calcGiColors(mags):
             gi[objtype][s] = mags[objtype][s]['g'] - mags[objtype][s]['i']
     return gi
 
+
 def calcAnyColor(mags, color1, color2):
-    """Calculate any color of objects in a set of magnitudes. Specify color1 (e.g. 'g') and color2 (e.g. 'i')."""
+    """Calculate any color of objects in a set of magnitudes.
+    Specify color1 (e.g. 'g') and color2 (e.g. 'i').
+    """
     color = {}
     for objtype in mags:
         color[objtype] = {}
@@ -191,8 +207,10 @@ def calcAnyColor(mags, color1, color2):
             color[objtype][s] = mags[objtype][s][color1] - mags[objtype][s][color2]
     return color
 
+
 def printDmags(dmags, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
-    """Print changes in magnitudes to the screen."""
+    """Print changes in magnitudes to the screen.
+    """
     print('Delta mmag:')
     writestring = "object"
     for f in filterlist:
@@ -211,9 +229,12 @@ def printDmags(dmags, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
 def plotDmags(color, dmags, colorname = 'g-i', xlim=None,
               newfig=True, titletext=None, savefig=False,
               filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
-    """Generate a plot of the change in magnitudes as a function of color. """
-    symbs = {'quasar':'o', 'stars':'*', 'white_dwarf':'*', 'sn':'x', 'galaxies':'s', 'photoZ_outliers':'+', 'any':'^'}
-    colors = {'quasar':'g', 'stars':'r', 'white_dwarf':'m','sn':'b', 'galaxies':'g', 'photoZ_outliers':'g', 'any':'k'}
+    """Generate a plot of the change in magnitudes as a function of color.
+    """
+    symbs = {'quasar':'o', 'stars':'*', 'white_dwarf':'*', 'sn':'x', 'galaxies':'s',
+             'photoZ_outliers':'+', 'any':'^'}
+    colors = {'quasar':'g', 'stars':'r', 'white_dwarf':'m','sn':'b', 'galaxies':'g',
+              'photoZ_outliers':'g', 'any':'k'}
     if newfig:
         plt.figure()
     plt.subplots_adjust(top=0.93, wspace=0.32, hspace=0.32, bottom=0.09, left=0.12, right=0.96)
@@ -235,10 +256,14 @@ def plotDmags(color, dmags, colorname = 'g-i', xlim=None,
     return
 
 
-def plotDmagsSingle(color, dmags, colorname='g-i', plotFilter='u', newfig=True, titletext=None, savefig=False):
-    """Generate a plot of the change in magnitudes, in a single filter only. """
-    symbs = {'quasar':'o', 'stars':'*', 'white_dwarf':'*', 'sn':'x', 'galaxies':'s', 'photoZ_outliers':'+', 'any':'^'}
-    colors = {'quasar':'g', 'stars':'r', 'white_dwarf':'m', 'sn':'b', 'galaxies':'g', 'photoZ_outliers':'g', 'any':'k'}
+def plotDmagsSingle(color, dmags, colorname='g-i', plotFilter='u', newfig=True,
+                    titletext=None, savefig=False):
+    """Generate a plot of the change in magnitudes, in a single filter only.
+    """
+    symbs = {'quasar':'o', 'stars':'*', 'white_dwarf':'*', 'sn':'x', 'galaxies':'s',
+             'photoZ_outliers':'+', 'any':'^'}
+    colors = {'quasar':'g', 'stars':'r', 'white_dwarf':'m', 'sn':'b', 'galaxies':'g',
+              'photoZ_outliers':'g', 'any':'k'}
     if newfig:
         plt.figure()
     f = plotFilter
@@ -250,7 +275,8 @@ def plotDmagsSingle(color, dmags, colorname='g-i', plotFilter='u', newfig=True, 
     plt.title(titletext)
     handles= []
     for objtype in dmags:
-        myline = mlines.Line2D([], [], color=colors[objtype], marker=symbs[objtype], linestyle='', label=objtype)
+        myline = mlines.Line2D([], [], color=colors[objtype], marker=symbs[objtype],
+                               linestyle='', label=objtype)
         handles.append(myline)
     plt.legend(handles=handles, loc=(0.9, .2), fontsize='small', numpoints=1, fancybox=True)
     if savefig:
