@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Create a set of files to replace the "baseline" files in the THROUGHPUTS repository.
 # Add header information that tracks the files here and also adds cutoff wavelength information.
 from __future__ import print_function
@@ -6,7 +8,7 @@ import shutil
 import subprocess
 import numpy as np
 from lsst.sims.photUtils import Bandpass, Sed
-import bandpassUtils as bu
+import lsst.syseng.throughputs.bandpassUtils as bu
 
 # throughput files:
 # atmos_std.dat, atmos_10.dat
@@ -41,6 +43,7 @@ outDir = 'baseline'
 if not os.path.isdir(outDir):
     os.makedirs(outDir)
 
+# @@@
 shutil.copy('../README.md', os.path.join(outDir, 'README.md'))
 
 version = subprocess.check_output(['git', 'describe']).strip()
@@ -79,9 +82,12 @@ atmos_10.writeThroughput(os.path.join(outDir, 'atmos_10.dat'), print_header=atmo
 darksky.writeSED(os.path.join(outDir, 'darksky.dat'), print_header=skyheader)
 
 for f in filters:
-    filters[f].writeThroughput(os.path.join(outDir, 'filter_%s.dat' %(f)), print_header=header+perfilterheader[f])
-    hardware[f].writeThroughput(os.path.join(outDir, 'hardware_%s.dat' %(f)), print_header=header+perfilterheader[f])
-    system[f].writeThroughput(os.path.join(outDir, 'total_%s.dat' %(f)), print_header=systemheader+perfilterheader[f])
+    filters[f].writeThroughput(os.path.join(outDir, 'filter_%s.dat' %(f)),
+                               print_header=header+perfilterheader[f])
+    hardware[f].writeThroughput(os.path.join(outDir, 'hardware_%s.dat' %(f)),
+                                print_header=header+perfilterheader[f])
+    system[f].writeThroughput(os.path.join(outDir, 'total_%s.dat' %(f)),
+                              print_header=systemheader+perfilterheader[f])
 
 
 

@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+
 import os, argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from lsst.sims.photUtils import Bandpass
-import bandpassUtils as bu
+import lsst.sims.syseng.throughputs.bandpassUtils as bu
 
 def addAerosol(atmosphere, X, tau0=0.05, alpha=1.0, wavelen0=440.0, plotAtmosphere=True):
     # Calculate the aerosol contribution -- sb with aerosols = sb*exp(-tau)
@@ -22,8 +24,10 @@ def addAerosol(atmosphere, X, tau0=0.05, alpha=1.0, wavelen0=440.0, plotAtmosphe
 
 if __name__=='__main__':
 
-    parser = argparse.ArgumentParser(description='Add a standard aerosol component to an atmosphere without aerosols')
-    parser.add_argument('atmosphereFile', type=str, default=None, help='The atmosphere file to add aerosols to.')
+    parser = argparse.ArgumentParser(description=
+                                     'Add a standard aerosol component to an atmosphere without aerosols')
+    parser.add_argument('atmosphereFile', type=str, default=None,
+                        help='The atmosphere file to add aerosols to.')
     parser.add_argument('airmass', type=float, default=None, help='The airmass of the atmosphere file.')
     args = parser.parse_args()
     atmosDir, atmosFile = os.path.split(args.atmosphereFile)
