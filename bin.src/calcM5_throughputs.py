@@ -3,10 +3,14 @@
 from __future__ import print_function
 # Calculate m5 values using the *throughputs* repo files.
 import os
+import pandas as pd
 from lsst.sims.photUtils import Bandpass, Sed, SignalToNoise
 import lsst.syseng.throughputs as st
 
 if __name__ == '__main__':
+
+    # Set the max number of columns for pandas output of the m5 values.
+    pd.set_option('display.max_columns', 500)
 
     # Set the directories for each component.
     # Note that this sets the detector to be the 'generic detector' (minimum of each vendor).
@@ -14,6 +18,7 @@ if __name__ == '__main__':
     defaultDirs = st.setDefaultDirs()
 
     # Build the system and hardware throughput curves (without aerosols, with X=1.0).
+    print("Calculating m5 using X=1.0 atmosphere")
     atmosphere = st.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     hardware = {}
     system = {}

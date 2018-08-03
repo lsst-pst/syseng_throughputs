@@ -2,9 +2,13 @@
 
 # Calculate m5 values using the SYSENG_THROUGHPUTS files.
 from __future__ import print_function
+import pandas as pd
 import lsst.syseng.throughputs as st
 
 if __name__ == '__main__':
+
+    # Set the max number of columns for the pandas output of m5.
+    pd.set_option('display.max_columns', 500)
 
     # Set the directories for each component.
     # Note that this sets the detector to be the 'generic detector' (minimum of each vendor).
@@ -17,12 +21,14 @@ if __name__ == '__main__':
     addLosses = True
 
     # Build the system and hardware throughput curves (with aerosols, with X=1.2).
+    print("Calculating m5 values with X=1.2")
     atmosphere = st.readAtmosphere(defaultDirs['atmosphere'], atmosFile='pachonModtranAtm_12_aerosol.dat')
     hardware, system = st.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
     m5 = st.makeM5(hardware, system, X=1.2)
     print(m5)
 
     # At X=1.0
+    print("Calculating m5 values with X=1.0")
     atmosphere = st.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     hardware, system = st.buildHardwareAndSystem(defaultDirs, addLosses, atmosphereOverride=atmosphere)
     m5 = st.makeM5(hardware, system, X=1.0)
