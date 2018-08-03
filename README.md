@@ -1,6 +1,6 @@
 # syseng_throughputs #
 SysEng-approved LSST throughput curves
-The latest m5 depths are available in the notebooks, such as in [notebooks/Overview Paper.ipynb](https://github.com/lsst-pst/syseng_throughputs/blob/master/notebooks/Overview%20Paper.ipynb).
+The latest m5 depths are available in the notebooks, such as in [notebooks/Overview Paper.ipynb](./notebooks/Overview%20Paper.ipynb).
 
 This repository provides the ultimate source of the throughput curves in the repository [lsst/throughputs](https://github.com/lsst/throughputs).
 
