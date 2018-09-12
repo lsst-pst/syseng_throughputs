@@ -103,7 +103,7 @@ def matchSedsBp(sedDict, bpDict, refFilter=None):
     but is not strictly necessary.
     """
     if refFilter == None:
-        refFilter = bpDict.keys()[0]
+        refFilter = list(bpDict.keys())[0]
     wavelen_match = bpDict[refFilter].wavelen
     # Check all filters in bpDict match in wavelength space (note bandpasses must be regular grid).
     for f in bpDict.keys():

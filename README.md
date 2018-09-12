@@ -1,6 +1,6 @@
 # syseng_throughputs #
 SysEng-approved LSST throughput curves
-The latest m5 depths are available in plots/table2: https://github.com/lsst-pst/syseng_throughputs/blob/master/plots/table2
+The latest m5 depths are available in the notebooks, such as in [notebooks/Overview Paper.ipynb](./notebooks/Overview%20Paper.ipynb).
 
 This repository provides the ultimate source of the throughput curves in the repository [lsst/throughputs](https://github.com/lsst/throughputs).
 
@@ -14,14 +14,26 @@ to the surface, such as the Broad Band Anti-Reflection coatings on the
 lenses.
 
 These components curves are maintained and updated by the LSST system
-engineering team. Python utilties to read and combine these various
+engineering team.
+
+Python utilties to read and combine these various
 curves appropriately are maintained in this repository, in the
-[python](./python) directory. In particular, note the utilities
-provided in [bandpassUtils.py](./python/bandpassUtils.py). At this
+[python](./python/lsst/syseng/throughputs) directory. In particular, note the utilities
+provided in [bandpassUtils.py](./python/lsst/syseng/throughputs/bandpassUtils.py). At this
 time, we expect most users to use the throughputs repository instead
 of this repository directly - the curves in the throughputs repository
 are constructed from these curves, and can be traced through the git
 SHA1 and release tags.
+
+# Release 1.4 #
+
+The primary update here is in the lens2 response curves. The BBAR coating
+has been updated.
+
+Other minor updates include bug fixes in the python code in sedUtils.py,
+updating of the jupyter notebooks, and the addition of notebooks evaluating
+the effect of the mixed vendor detector focal plane and recreating the
+inputs for the LSST Overview Paper.
 
 # Release 1.3: #
 
