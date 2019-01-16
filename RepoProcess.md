@@ -1,6 +1,6 @@
-### This repository contains approved system engineering throughput components.
+## This repository contains approved system engineering throughput components.
 
-## Update process
+### Update process
 
 Any updates to the repository must be approved by Steve Ritz (camera) or Chuck Claver (telescope).
 
@@ -48,7 +48,7 @@ After it is merged to master, a new version # / tag should be assigned, to uniqu
 throughputs repo. This will also be copied to the lsst/throughputs repo.
 
 
-## Files in the repository
+### Files in the repository
 
 Tracking the inputs in the syseng_throughputs repository from the official files in Docushare is important.
 For this reason, notebooks which CREATE the actual text throughput files from the Docushare input file will be
