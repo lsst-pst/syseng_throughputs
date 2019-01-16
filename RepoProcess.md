@@ -24,6 +24,8 @@ When ready to commit the files to git:
 ```
 git add <my_updated_file>
 ```
+-- check that you added ALL of the files that you wanted to add by doing another ```git status``` (your files that 
+will be added to the commit will be listed in the "Changes to be committed") --
 and then commit these changes to git.
 ```git commit```
 (you will be asked to include a git commit message .. make it descriptive of the changes, as this is a good way
