@@ -2,7 +2,7 @@
 
 ### Update process
 
-Any updates to the repository must be approved by Steve Ritz (camera) or Chuck Claver (telescope).
+Any updates to the repository must be approved by Steve Ritz (camera), Chuck Claver (telescope), or other authorized person.
 
 Updates should be added in a branch and merged to master via a Pull Request.
 
@@ -10,13 +10,26 @@ Create a copy of the repo, if necessary.
 ```
 git clone git@github.com:lsst-pst/syseng_throughputs syseng_throughputs
 ```
+If you already have a copy of the repo, be sure to do 
+```
+git pull
+```
+before continuing.
+
 
 Create and checkout a new branch to add the information about the updated component <component_name>.
 ```
-git checkout -b update/<component_name>
+git checkout -b update/<component_name_date>
 ```
-Note that the result of `git status` will now include the branch name. You can switch back to master by
+If the branch already exists, you can just do 
+```
+git checkout update/<component_name_date>
+```
+
+Note that `git status` will tell you the branch that you are using, locally. You can switch back to master by
 ```git checkout master``` and then back again by ```git checkout update/<component_name>```
+
+The command `git status` is useful for many things, including seeing what files are changed locally or which files are staged for commit (have been added to the 'queue' to commit). 
 
 Add your files or update the existing files in the repository, in this branch.
 
@@ -38,10 +51,12 @@ along with any necessary documentation and python files), but this is not strict
 Please remember to update the top-level README, which summarizes changes to the throughputs repo for each
 version of the files.
 
-So these changes are local to your own copy of the repository -- you should now push them back to
+At this point, these changes are still local to your own copy of the repository -- you should now push them back to
 github with
 ```git push```
-to send to the remote branch. You can now go to github and start the Pull Request. Add additional documentation
+to send to the remote branch. 
+
+You can now go to github and start the Pull Request. Add additional documentation
 in the PR, including plots of the previous and new throughput components, the source of the new throughput curves,
 a short summary of the reason for the changes, and a summary of the effect of the changes. Then Steve and/or Chuck
 can be added as the "Reviewers" -- at least one approval is required before the branch can be merged to master.
@@ -54,7 +69,7 @@ throughputs repo. This will also be copied to the lsst/throughputs repo.
 
 Tracking the inputs in the syseng_throughputs repository from the official files in Docushare is important.
 For this reason, notebooks which CREATE the actual text throughput files from the Docushare input file will be
-stored in the repository as well. These will be placed in the input_notebooks directory, together with a copy of
+stored in the repository as well. These will be placed in the documentation directory, together with a copy of
 the Docushare file (or a link to the official docushare file?). These notebooks will be configured to write their
 outputs directly to the appropriate directories in the components directory. If the format of the files changes as
 a result, the corresponding code in the python/lsst/syseng/throughputs repository (which reads and creates the combined files)
