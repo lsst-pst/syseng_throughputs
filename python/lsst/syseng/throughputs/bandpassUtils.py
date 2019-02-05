@@ -11,7 +11,7 @@ except ImportError:
     lsststack = False
 
 
-__all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', ' buildFilters',
+__all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilters',
            'savitzky_golay', 'buildLens', 'buildMirror', 'readAtmosphere',
            'buildHardwareAndSystem', 'plotBandpasses']
 
