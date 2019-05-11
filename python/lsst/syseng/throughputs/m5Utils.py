@@ -6,7 +6,7 @@ from lsst.sims.photUtils import Bandpass, Sed, SignalToNoise
 from lsst.sims.photUtils import PhotometricParameters, LSSTdefaults
 from lsst.utils import getPackageDir
 
-filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
+filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
@@ -98,12 +98,29 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     properties = ['FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
                   'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts',
                   'm5_fid', 'm5_min']
+    for key in system.keys():
+        if key not in filterlist:
+            filterlist.append(key)
     d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
+    fwhmeffs = []
+    eff_waves = []
+    for key in lsstDefaults._effwavelen:
+        fwhmeffs.append(lsstDefaults._effwavelen[key])
+        eff_waves.append(lsstDefaults._effwavelen[key])
     for f in system:
-        d.m5_fid.loc[f] = m5_fid[f]
-        d.m5_min.loc[f] = m5_min[f]
+        # add any missing fiducials and mins
+        if f in m5_min.keys():
+            d.m5_fid.loc[f] = m5_fid[f]
+            d.m5_min.loc[f] = m5_min[f]
+        else:
+            d.m5_fid.loc[f] = -666
+            d.m5_min.loc[f] = -666
         d.Zp_t.loc[f] = system[f].calcZP_t(photParams_zp)
-        d.FWHMeff.loc[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
+        fwhm_eff = np.interp(system[f].calcEffWavelen()[1], eff_waves, fwhmeffs)
+        try:
+            d.FWHMeff.loc[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
+        except:
+             d.FWHMeff.loc[f] = np.power(X, 0.6) * 0.8
         d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052
         d.m5.loc[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f],
                                            photParams_std, FWHMeff=d.FWHMeff.loc[f])
