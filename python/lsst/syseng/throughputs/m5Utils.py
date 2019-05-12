@@ -98,14 +98,17 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     properties = ['FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
                   'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts',
                   'm5_fid', 'm5_min']
-    for key in system.keys():
+    temp_list = system.keys()
+    temp_list = list(temp_list)
+    temp_list.sort()
+    for key in temp_list:
         if key not in filterlist:
             filterlist.append(key)
     d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
     fwhmeffs = []
     eff_waves = []
     for key in lsstDefaults._effwavelen:
-        fwhmeffs.append(lsstDefaults._effwavelen[key])
+        fwhmeffs.append(lsstDefaults._FWHMeff[key])
         eff_waves.append(lsstDefaults._effwavelen[key])
     for f in system:
         # add any missing fiducials and mins
@@ -120,7 +123,7 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
         try:
             d.FWHMeff.loc[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
         except:
-             d.FWHMeff.loc[f] = np.power(X, 0.6) * 0.8
+             d.FWHMeff.loc[f] = np.power(X, 0.6) * fwhm_eff
         d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052
         d.m5.loc[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f],
                                            photParams_std, FWHMeff=d.FWHMeff.loc[f])
