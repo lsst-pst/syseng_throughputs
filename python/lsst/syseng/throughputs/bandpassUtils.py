@@ -2,8 +2,18 @@ import os
 from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import lsst.utils
-from lsst.sims.photUtils import Bandpass
+try:
+    import lsst.utils
+    from lsst.sims.photUtils import Bandpass
+    lsststack = True
+except ImportError:
+    print('Do not have sims_photUtils available; only setDefaultDirs is available.')
+    lsststack = False
+
+
+__all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilters',
+           'savitzky_golay', 'buildLens', 'buildMirror', 'readAtmosphere',
+           'buildHardwareAndSystem', 'plotBandpasses']
 
 # Input components:
 
@@ -21,6 +31,7 @@ filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
+
 def setDefaultDirs(rootDir=None):
     """
     Returns a dictionary with the default directory locations of each component of the system throughput.
@@ -32,7 +43,10 @@ def setDefaultDirs(rootDir=None):
     # ('setup syseng_throughputs' will do this automatically)
     defaultDirs = {}
     if rootDir is None:
-        rootDir = lsst.utils.getPackageDir('syseng_throughputs')
+        if lsststack:
+            rootDir = lsst.utils.getPackageDir('syseng_throughputs')
+        else:
+            raise ValueError('LSST stack not available; must specify rootDir (root of syseng_throughputs')
     defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector/joint_minimum')
     for lens in ('lens1', 'lens2', 'lens3'):
         defaultDirs[lens] = os.path.join(rootDir, 'components/camera', lens)

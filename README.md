@@ -25,6 +25,13 @@ of this repository directly - the curves in the throughputs repository
 are constructed from these curves, and can be traced through the git
 SHA1 and release tags.
 
+# Release 1.5 #
+
+This is a minor update for throughputs (the lens2 glass and BBAR coating curves
+have been extended in their wavelength information, but the curves themselves
+are the same as previously). However it is a major update for documentation
+and process information, as reflected in the "documentation" subdirectory.
+
 # Release 1.4 #
 
 The primary update here is in the lens2 response curves. The BBAR coating
