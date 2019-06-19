@@ -43,12 +43,13 @@ outDir = 'baseline'
 if not os.path.isdir(outDir):
     os.makedirs(outDir)
 
-# @@@
-shutil.copy('../README.md', os.path.join(outDir, 'README.md'))
+# Create the README for the throughputs baseline directory.
+shutil.copy('throughputs_header.txt', os.path.join(outDir, 'README.md'))
+shutil.copy('../README.md', os.path.join(outDir, 'README_SOURCE.md'))
 
-version = subprocess.check_output(['git', 'describe']).strip()
-sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
-print("version", version, "sha1", sha1)
+version = subprocess.check_output(['git', 'describe', '--tags']).strip().decode("utf-8")
+sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
+print("version %s sha1 %s" % (version, sha1))
 versioninfo = '# Version %s\n'%(version)
 versioninfo += '# sha1 %s\n' %(sha1)
 
