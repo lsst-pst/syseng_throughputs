@@ -26,7 +26,8 @@ __all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilte
 #   containing the throughput response. The name of this file varies. For the glass for
 #   lens components, the glass throughput curve must be smoothed by a savitzky_golay function.
 
-belowZeroThreshhold = -1.0e-15
+#belowZeroThreshhold = -1.0e-15
+belowZeroThreshhold = -1.0e-4  # Make it easier for narrowband filters
 filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
@@ -211,7 +212,7 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     for f in filters:
         belowzero = np.where(filters[f].sb < 0)
         # If there are QE values significantly < 0, raise an exception.
-        if filters[f].sb[belowzero] < belowZeroThreshhold:
+        if np.where(filters[f].sb[belowzero] < belowZeroThreshhold)[0].size > 0:
             raise ValueError('Found values in filter response significantly below zero in %s filter' % f)
         # If they are just small errors in interpolation, set to zero.
         filters[f].sb[belowzero] = 0
@@ -418,6 +419,10 @@ def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlege
             if f in names:
                 newnames.append(f)
         names = newnames
+    # just set other things to k
+    for key in names:
+        if key not in filtercolors.keys():
+            filtercolors[key] = 'k'
     for f in names:
         plt.plot(bandpassDict[f].wavelen, bandpassDict[f].sb, marker="", linestyle=linestyle,
                    linewidth=linewidth, color=filtercolors[f], label=f)
