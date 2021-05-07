@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import numpy as np
 import pandas as pd
@@ -6,7 +5,7 @@ from lsst.sims.photUtils import Bandpass, Sed, SignalToNoise
 from lsst.sims.photUtils import PhotometricParameters, LSSTdefaults
 from lsst.utils import getPackageDir
 
-filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
+filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
@@ -15,7 +14,7 @@ m5_fid = {'u': 23.9, 'g': 25.0, 'r': 24.7, 'i': 24.0, 'z': 23.3, 'y': 22.1}
 m5_min = {'u': 23.4, 'g': 24.6, 'r': 24.3, 'i': 23.6, 'z': 22.9, 'y': 21.7}
 
 
-def get_effwavelens(system_bandpasses, filterlist=('u', 'g', 'r', 'i', 'z', 'y')):
+def get_effwavelens(system_bandpasses, filterlist):
     """Calculate the effective wavelengths.
 
     Parameters
@@ -24,9 +23,8 @@ def get_effwavelens(system_bandpasses, filterlist=('u', 'g', 'r', 'i', 'z', 'y')
 
     Returns
     -------
-    numpy.ndarray
-        The effective wavelength values, in a numpy array.
-        Order matches filterlist.
+    numpy.ndarray of floats
+        The effective wavelength values, in a numpy array, in order of filterlist.
     """
     eff_wavelen = np.zeros(len(filterlist), float)
     for i, f in enumerate(filterlist):
@@ -98,12 +96,40 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     properties = ['FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
                   'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts',
                   'm5_fid', 'm5_min']
-    d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
+
+    # Set filterlist - usually this will be just 'filterlist' above, but could have added extras
     for f in system:
-        d.m5_fid.loc[f] = m5_fid[f]
-        d.m5_min.loc[f] = m5_min[f]
+        if f not in filterlist:
+            filterlist.append(f)
+    # Now set up dataframe to hold outputs
+    d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
+
+    # Calculate effective wavelengths
+    eff_wavelengths = get_effwavelens(system, filterlist)
+    # Calculate the FWHM at each wavelength, for this airmass.
+    fwhm_eff_zenith = np.zeros(len(filterlist), float)
+    for i, f in enumerate(filterlist[0:7]):
+        # The original LSST filters
+        fwhm_eff_zenith[i] = lsstDefaults.FWHMeff(f)
+    if len(filterlist) > 6:
+        for i, f in enumerate(filterlist[7:]):
+            fwhm_eff_zenith[i] = np.interp(system[f].calcEffWavelen()[1],
+                                            eff_wavelengths[0:7],
+                                            fwhm_eff_zenith[0:7])
+    fwhm_eff = {}
+    for i, f in enumerate(filterlist):
+        fwhm_eff[f] = np.power(X, 0.6) * fwhm_eff_zenith[i]
+
+    for f in system:
+        # add any missing m5 fiducials and mininum values - no requirements on non-standard bands
+        if f in m5_min.keys():
+            d.m5_fid.loc[f] = m5_fid[f]
+            d.m5_min.loc[f] = m5_min[f]
+        else:
+            d.m5_fid.loc[f] = -666
+            d.m5_min.loc[f] = -666
         d.Zp_t.loc[f] = system[f].calcZP_t(photParams_zp)
-        d.FWHMeff.loc[f] = np.power(X, 0.6) * lsstDefaults.FWHMeff(f)
+        d.FWHMeff.loc[f] = fwhm_eff[f]
         d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052
         d.m5.loc[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f],
                                            photParams_std, FWHMeff=d.FWHMeff.loc[f])
