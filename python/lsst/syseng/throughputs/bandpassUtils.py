@@ -26,8 +26,7 @@ __all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilte
 #   containing the throughput response. The name of this file varies. For the glass for
 #   lens components, the glass throughput curve must be smoothed by a savitzky_golay function.
 
-#belowZeroThreshhold = -1.0e-15
-belowZeroThreshhold = -1.0e-4  # Make it easier for narrowband filters
+belowZeroThreshhold = -1.0e-6
 filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
