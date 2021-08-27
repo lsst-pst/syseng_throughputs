@@ -3,8 +3,8 @@
 import os, argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from lsst.sims.photUtils import Bandpass
-import lsst.sims.syseng.throughputs.bandpassUtils as bu
+from rubin_sim.photUtils import Bandpass
+import syseng_throughputs.bandpassUtils as bu
 
 def addAerosol(atmosphere, X, tau0=0.05, alpha=1.0, wavelen0=440.0, plotAtmosphere=True):
     # Calculate the aerosol contribution -- sb with aerosols = sb*exp(-tau)

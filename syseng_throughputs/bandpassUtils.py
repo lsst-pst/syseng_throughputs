@@ -2,18 +2,22 @@ import os
 from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
-try:
-    import lsst.utils
-    from lsst.sims.photUtils import Bandpass
-    lsststack = True
-except ImportError:
-    print('Do not have sims_photUtils available; only setDefaultDirs is available.')
-    lsststack = False
+from rubin_sim import Bandpass
 
 
 __all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilters',
            'savitzky_golay', 'buildLens', 'buildMirror', 'readAtmosphere',
            'buildHardwareAndSystem', 'plotBandpasses']
+
+"""This module combines the individual base-level components to build a total throughput curve.
+
+This includes the telescope (M1/M2/M3), with their appropriate loss curves, 
+the optics (L1/L2/L3) (calculated from the glass + coatings file) with their appropriate loss curves, 
+the filters (ugrizy), 
+and the QE of the detector, with appropriate loss curve 
+(QE can be computed as a minimum between vendors, or each vendor individually). 
+The losses for each component can be chosen to be added or not. 
+"""
 
 # Input components:
 
@@ -38,15 +42,25 @@ def setDefaultDirs(rootDir=None):
     The default value for each component will mirror the expected values in the syseng_throughputs repository,
     with the defaultDirs['detector'] value pointing to the directory common to all vendors
     (thus would build a generic detector using the minimum values).
+
+    Parameters
+    ----------
+    rootDir : 'str', opt
+        Path to top level ('syseng_throughputs' root directory) of throughput data.
+        Default None - uses 'SYSENG_THROUGHPUTS_DIR' environment variable.
+
+    Returns
+    -------
+    defaultDirs : `dict`
+        Dictionary with keys = component name, value = default root directory for that component.
     """
     # Set SYSENG_THROUGHPUTS_DIR to the root dir for syseng_throughputs
     # ('setup syseng_throughputs' will do this automatically)
     defaultDirs = {}
     if rootDir is None:
-        if lsststack:
-            rootDir = lsst.utils.getPackageDir('syseng_throughputs')
-        else:
-            raise ValueError('LSST stack not available; must specify rootDir (root of syseng_throughputs')
+        rootDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
+        if rootDir is None:
+            raise ValueError('Neither rootDir kwarg nor $SYSENG_THROUGHPUTS_DIR env variable specified.')
     defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector/joint_minimum')
     for lens in ('lens1', 'lens2', 'lens3'):
         defaultDirs[lens] = os.path.join(rootDir, 'components/camera', lens)
@@ -60,7 +74,16 @@ def setDefaultDirs(rootDir=None):
 def _readLosses(componentDir):
     """
     Read and combine the losses in all files from a _Losses subdirectory in componentDir.
-    Return a bandpass object with all losses combined.
+
+    Parameters
+    ----------
+    componentDir : `str`
+        The directory containing the _Losses subdirectory.
+
+    Returns
+    -------
+    loss : `Bandpass`
+        A rubin_sim.photUtils.Bandpass object with all losses combined.
     """
     lossDir = glob(os.path.join(componentDir, '*_Losses'))
     if len(lossDir) > 1:
@@ -86,7 +109,16 @@ def _readLosses(componentDir):
 def _readCoatings(componentDir):
     """
     Read and combine the coatings in all files from a _Coatings subdirectory in componentDir.
-    Return a bandpass object with all coating throughputs combined.
+
+    Parameters
+    ----------
+    componentDir : `str`
+        The directory containing the *_Coatings subdirectory.
+
+    Returns
+    -------
+    coatings : `Bandpass`
+        A bandpass object with all coating throughputs combined.
     """
     coatingDir = glob(os.path.join(componentDir, '*_Coatings'))
     if len(coatingDir) > 1:
@@ -114,9 +146,18 @@ def buildVendorDetector(vendorDir, addLosses=True):
     Builds a detector response from the files in vendorDir, by reading the *_QE.dat
     and *_Losses subdirectory for a single version of the detector.
 
-    Returns a Bandpass object.
-    If addLosses is True, the QE curve is multiplied by the losses in the *Losses.dat files.
-    If addLosses is False, the QE curve does not have any losses included.
+    Parameters
+    ----------
+    vendorDir : `str`
+        The directory from which to read a particular vendor QE curve (_QE.dat)
+    addLosses : `bool`, opt
+        Flag to determine whether to read and then combine the losses from the *_Losses.dat files with the QE
+        Default True.
+
+    Returns
+    -------
+    qe : `Bandpass`
+        A bandpass object with the QE curve, including losses if addLosses=True.
     """
     # Read the QE file.
     qefile = glob(os.path.join(vendorDir, '*_QE.dat'))
@@ -155,6 +196,19 @@ def buildDetector(detectorDir, addLosses=True):
     bandpassUtils.buildVendorDetector.
     The value of addLosses will be passed to buildVendorDetector - if True, losses are
     included in the returned response curve.
+
+    Parameters
+    ----------
+    detectorDir : `str`
+        The directory from which to read either the single vendor or multiple vendor QE curves.
+    addLosses : `bool`, opt
+        Flag to determine whether to add losses to the final QE curve.
+        Default True.
+
+    Returns
+    -------
+    qe : `Bandpass`
+        A bandpass object with the QE curve for the detector (or multiple vendors).
     """
     try:
         # Try to treat this as a single vendor.
@@ -186,13 +240,25 @@ def buildDetector(detectorDir, addLosses=True):
 def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     """
     Build a filter throughput curve from the files in filterDir.
-    Assumes there are files [filtername]-bandResponse.dat, together with a 'filterLosses' subdirectory
+    Assumes there are files [filtername]-band_Response.dat, together with a 'filterLosses' subdirectory
     containing loss files.
 
-    Returns a dictionary (keyed by filter name) of the bandpasses for each filter.
-    If addLosses is True, the filter throughput curves are multiplied by the loss files.
-    If shiftFilters is not None, the value (float) is the percent (1-2.5?) of the effective wavelength
-    to shift the filter response by.
+    Parameters
+    ----------
+    filterDir : `str`
+        Directory from which to read the [filtername]-band_Response.dat files
+    addLosses : `bool`, opt
+        Flag to determine whether to add losses to the filter response curves, from the _Losses subdirectory.
+        Default True.
+    shiftFilters : `float`, opt
+        Add a simple offset to the filter wavelength/throughput values.
+        The value for shiftFilters is the % of the effective wavelength to shift by.
+        Default None, no shift. Typical likely shifts may be 1-3% or so.
+
+    Returns
+    -------
+    filters : `dict`
+        A dictionary {'filter': 'Bandpass`} containing the filter throughputs.
     """
     # Read the filter files.
     filterfiles = glob(os.path.join(filterDir, '*_band_Response.dat'))
@@ -260,8 +326,22 @@ def buildLens(lensDir, addLosses=True):
     Returns a bandpass object.
     The coatings for the lens are in *_Coatings, the loss files are in *_Losses.
     The borosilicate glass throughput is in l*_Glass.dat;
-    this file is smoothed using the savitzsky_golay function.
+    the glass throughput values are smoothed using the savitzsky_golay function.
     The glass response is multiplied by the coatings and (if addLosses is True), also the loss curves.
+
+    Parameters
+    -----------
+    lensDir : `str`
+        The directory from which to read the l*_Glass.dat file, along with subdirectories for
+        the Coatings and Losses.
+    addLosses : `bool`, opt
+        Flag to add losses from the _Losses subdirectory.
+        Default True.
+
+    Returns
+    -------
+    lens : `Bandpass`
+        A bandpass object with the lens throughput, including coatings and optionally losses.
     """
     lens = Bandpass()
     # Read the glass base file.
@@ -299,9 +379,20 @@ def buildMirror(mirrorDir, addLosses=True):
     """
     Build a mirror throughput curve.
     Assumes there are *Losses.dat subdirectory with loss files
-       and a m*_Ideal.dat file with the mirror throughput.
-    Returns a bandpass object.
-    If addLosses is True, the *_Ideal.dat file is multiplied by the *_Losses/*.dat files.
+    and a m*_Ideal.dat file with the mirror throughput.
+
+    Parameters
+    ----------
+    mirrorDir : `str`
+        Path to mirror directory. Must contain a file m*Ideal.dat with mirror throughput.
+    addLosses : `bool`, opt
+        Flag to add loss contributions from the *_Losses subdirorectires.
+        Default True.
+
+    Returns
+    -------
+    mirror : `Bandpass`
+        A bandpass object with the mirror throughput, optionally with added losses.
     """
     # Read the mirror reflectance curve.
     mirrorfile = glob(os.path.join(mirrorDir, 'm*Ideal.dat'))
@@ -326,9 +417,20 @@ def buildMirror(mirrorDir, addLosses=True):
 
 def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
     """
-    Read an atmosphere throughput curve, from the default location 'atmosDir'
-     and default filename 'pachonModtranAtm_12.dat'
-    Returns a bandpass object.
+    Read an atmosphere throughput curve.
+
+    Parameters
+    ----------
+    atmosDir : `str`
+        The directory containing the atmosphere throughput file.
+    atmosFile : `str`, opt
+        The filename of the atmospheric throughput curve.
+        Default pachonModtranAtm_12.dat
+
+    Returns
+    -------
+    atmos : `Bandpass`
+        A bandpass object containing the atmospheric throughput curve.
     """
     atmofile = os.path.join(atmosDir, atmosFile)
     atmo = Bandpass()
@@ -346,20 +448,32 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
 def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None, shiftFilters=None):
     """
     Using directories for each component set by 'defaultDirs',
-     builds the system (including atmosphere) and hardware throughput curves for each filter.
-     Allows optional override of the default atmosphere by one passed in atmosphereOverride (a bandpass object).
-    Returns dictionaries of the hardware and system in bandpass objects, keyed per filtername.
+    build the system (including atmosphere) and hardware throughput curves for each filter.
 
-    defaultDirs is a dictionary containing the directories of each throughput component:
-      it can be built automatically using the setDefaultDirs function.
-    For each component, the relevant method above is called - to build the 'lens1' component, buildLens is called, etc.
-    The detector is built using 'buildDetector':
-      if the directory defaultDirs['detector'] points to multiple subdirectories
-       (one per vendor) then the detector response curve corresponds to the minimum
-       of all curves at each wavelength.
-      if defaultsDirs['detector'] points to a single vendor directory
-        (with a *QE.dat curve present), then this is treated a single vendor directory.
-    The value of addLosses is passed to each component as it is built (i.e. losses will be multiplied into each throughput curve).
+    Parameters
+    ----------
+    defaultDirs : `dict` of `str`
+        Dictionary containing the directories of each throughput component.
+        This can be built for the default values, using the setDefaultDirs function.
+        There should be 'detector', 'lens1', 'lens2', 'lens3', 'filters', 'mirror1', 'mirror2', 'mirror3',
+        and 'atmosphere' keys for this dictionary.
+        The 'detector' is built using 'buildDetector' - if this points to a single vendor directory,
+        the single vendor QE will be used, but if it is multiple vendors/subdirectories then this is
+        the minimum of each QE curve at each wavelength.
+    addLosses : `bool`, opt
+        Add losses for each component. These correspond to contamination or aging losses.
+        Default True.
+    atmosphereOverride : `Bandpass`, opt
+        A bandpass object containing a user-specified atmosphere throughput file.
+        Default None uses the atmosphere file specified in defaultDirs.
+    shiftFilters : `float`, opt
+        If specified, then the filter throughputs will be shifted by this percent relative to their
+        effective wavelengths. Default None (0).
+
+    Returns
+    -------
+    hardware, system : `dict`, `dict`
+        Dictionary of bandpass objects containing the hardware and system throughputs, keyed per filter.
     """
     # Build each component.
     detector = buildDetector(defaultDirs['detector'], addLosses)
@@ -397,15 +511,24 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None,
 def plotBandpasses(bandpassDict, title=None, newfig=True, savefig=False, addlegend=True,
                    linestyle='-', linewidth=2):
     """
-    Plot the bandpass throughput curves, provided as a dictionary in bandpassDict.
+    Plot the bandpass throughput curves.
 
-    title = plot title
-    newfig = (True/False) start a new figure or use the active matplotlib figure
-    savefig = (True/False) save the figure to disk with default name title.png or throughputs.png
-    if title not defined
-    addLegend = (True/False) add a legend to the plot
-    linestyle = matplotlib linestyle (default '-') for the throughput curve lines
-    linewidth = matplotlib linewidth (default 2) for the throughput curve lines.
+    Parameters
+    -----------
+    bandpassDict : `dict` of `Bandpass`
+        Dictionary of the bandpass objects, keyed per filter
+    title : `str`, opt
+        Title for the plot
+    newfig : `bool`, opt
+        Start a new figure or reuse the active matplotlib figure. Default True.
+    savefig : `bool`, opt
+        Save the figure to disk with default name title.png or throughputs.png. Default False.
+    addlegend : `bool`, opt
+        Add a legend to the plot. Default True.
+    linestyle : `str`, opt
+        The matplotlib linestyle for the throughput curves. Default '-'.
+    linewidth : `int`, opt
+        The matplotlib linewidth for the throughput curves. Default 2.
     """
     # Generate a new figure, if desired.
     if newfig:
