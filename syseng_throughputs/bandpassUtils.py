@@ -1,8 +1,9 @@
 import os
+import pkg_resources
 from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
-from rubin_sim import Bandpass
+from rubin_sim.photUtils import Bandpass
 
 
 __all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilters',
@@ -36,6 +37,21 @@ filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
 
 
+def findRootDir(rootDir=None):
+    """Find the location of the syseng_throughputs data.
+    First this looks to see if the rootDir was simply passed a kwarg.
+    If not, then it looks to see if SYSENG_THROUGHPUTS_DIR was set as an environment variable.
+    If not, then it looks for the location of the installed syseng_throughputs package.
+    """
+    if rootDir is None:
+        rootDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
+        if rootDir is None:
+            rootDir = os.path.split(pkg_resources.resource_filename('syseng_throughputs', '.'))[0]
+            # Remove the last syseng_throughputs where the python lives and go to the 'components' level
+            rootDir = os.path.split(rootDir)[0]
+    return rootDir
+
+
 def setDefaultDirs(rootDir=None):
     """
     Returns a dictionary with the default directory locations of each component of the system throughput.
@@ -47,20 +63,15 @@ def setDefaultDirs(rootDir=None):
     ----------
     rootDir : 'str', opt
         Path to top level ('syseng_throughputs' root directory) of throughput data.
-        Default None - uses 'SYSENG_THROUGHPUTS_DIR' environment variable.
+        Default None - uses 'SYSENG_THROUGHPUTS_DIR' environment variable or the location of this package.
 
     Returns
     -------
     defaultDirs : `dict`
         Dictionary with keys = component name, value = default root directory for that component.
     """
-    # Set SYSENG_THROUGHPUTS_DIR to the root dir for syseng_throughputs
-    # ('setup syseng_throughputs' will do this automatically)
     defaultDirs = {}
-    if rootDir is None:
-        rootDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
-        if rootDir is None:
-            raise ValueError('Neither rootDir kwarg nor $SYSENG_THROUGHPUTS_DIR env variable specified.')
+    rootDir = findRootDir(rootDir)
     defaultDirs['detector'] = os.path.join(rootDir, 'components/camera/detector/joint_minimum')
     for lens in ('lens1', 'lens2', 'lens3'):
         defaultDirs[lens] = os.path.join(rootDir, 'components/camera', lens)

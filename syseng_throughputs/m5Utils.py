@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from rubin_sim.photUtils import Bandpass, Sed, SignalToNoise
 from rubin_sim.photUtils import PhotometricParameters, LSSTdefaults
+from .bandpassUtils import findRootDir
 
 filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
@@ -86,9 +87,7 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     lsstDefaults = LSSTdefaults()
     # Set up dark sky and flat seds.
     if darksky is None:
-        rootDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
-        if rootDir is None:
-            raise ValueError('Neither darkSky kwarg nor $SYSENG_THROUGHPUTS_DIR env variable specified.')
+        rootDir = findRootDir()
         darksky = Sed()
         darksky.readSED_flambda(os.path.join(rootDir,
                                              'siteProperties', 'darksky.dat'))

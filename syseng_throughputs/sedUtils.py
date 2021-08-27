@@ -4,10 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from rubin_sim.photUtils import Sed
+from .bandpassUtils import findRootDir
 
 figformat = 'pdf'
 
-__all__ = ['readPhotSeds']
+__all__ = ['readPhotSeds', 'readAnySeds', 'makeRedshiftedSeds', 'redshiftSingleSED',
+           'matchSedsBp', 'calcNatMags', 'calcInstMags', 'calcDeltaMags', 'calcGiColors', 'calcAnyColor',
+           'printDmags', 'plotDmags', 'plotDmagsSingle']
 
 def readPhotSeds(sedDir=None):
     """
@@ -15,10 +18,8 @@ def readPhotSeds(sedDir=None):
     nested dictionary (sedDict['sedtype']['sedname']).
     """
     if sedDir is None:
-        sedDir = os.getenv('SYSENG_THROUGHPUTS_DIR')
-        if sedDir is None:
-            raise ValueError('Neither sedDir kwarg nor $SYSENG_THROUGHPUTS_DIR env variable specified.')
-    sedDir = os.path.join(sedDir, 'seds')
+        sedDir = findRootDir()
+        sedDir = os.path.join(sedDir, 'seds')
     # Set up the lists for the photometry reference SEDs.
     #  (I'm doing this by hand to keep these lists well-known over time.)
     sedlists = {}
