@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 # Calculate m5 values using the SYSENG_THROUGHPUTS files.
-from __future__ import print_function
 import pandas as pd
-import lsst.syseng.throughputs as st
+import syseng_throughputs as st
 
 if __name__ == '__main__':
 

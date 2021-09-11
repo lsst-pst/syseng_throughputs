@@ -18,12 +18,16 @@ engineering team.
 
 Python utilties to read and combine these various
 curves appropriately are maintained in this repository, in the
-[python](./python/lsst/syseng/throughputs) directory. In particular, note the utilities
-provided in [bandpassUtils.py](./python/lsst/syseng/throughputs/bandpassUtils.py). At this
+[syseng_throughputs](.syseng_throughputs) directory. In particular, note the utilities
+provided in [bandpassUtils.py](./syseng_throughputs/bandpassUtils.py). At this
 time, we expect most users to use the throughputs repository instead
 of this repository directly - the curves in the throughputs repository
 are constructed from these curves, and can be traced through the git
 SHA1 and release tags.
+
+The python code requires [rubin_sim](https://github.com/lsst/rubin_sim) to run.
+After installation of rubin_sim, install syseng_throughputs into the same python environment using
+```pip install -e .```
 
 # Release 1.7 #
 

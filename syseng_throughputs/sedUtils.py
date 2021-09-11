@@ -1,22 +1,25 @@
-from __future__ import print_function
 import os
 from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-from lsst.utils import getPackageDir
-from lsst.sims.photUtils import Sed
+from rubin_sim.photUtils import Sed
+from .bandpassUtils import findRootDir
 
 figformat = 'pdf'
 
+__all__ = ['readPhotSeds', 'readAnySeds', 'makeRedshiftedSeds', 'redshiftSingleSED',
+           'matchSedsBp', 'calcNatMags', 'calcInstMags', 'calcDeltaMags', 'calcGiColors', 'calcAnyColor',
+           'printDmags', 'plotDmags', 'plotDmagsSingle']
 
 def readPhotSeds(sedDir=None):
     """
     Read all the seds provided by this package, storing them in a
     nested dictionary (sedDict['sedtype']['sedname']).
     """
-    if sedDir == None:
-        sedDir = os.path.join(getPackageDir('SYSENG_THROUGHPUTS_DIR'), 'seds')
+    if sedDir is None:
+        sedDir = findRootDir()
+        sedDir = os.path.join(sedDir, 'seds')
     # Set up the lists for the photometry reference SEDs.
     #  (I'm doing this by hand to keep these lists well-known over time.)
     sedlists = {}

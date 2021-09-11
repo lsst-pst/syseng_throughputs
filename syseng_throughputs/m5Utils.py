@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
-from lsst.sims.photUtils import Bandpass, Sed, SignalToNoise
-from lsst.sims.photUtils import PhotometricParameters, LSSTdefaults
-from lsst.utils import getPackageDir
+from rubin_sim.photUtils import Bandpass, Sed, SignalToNoise
+from rubin_sim.photUtils import PhotometricParameters, LSSTdefaults
+from .bandpassUtils import findRootDir
 
 filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
@@ -19,11 +19,11 @@ def get_effwavelens(system_bandpasses, filterlist):
 
     Parameters
     ----------
-    system_bandpasses: dict of ~lsst.sims.photUtils.Bandpass
+    system_bandpasses: `dict` of `Bandpass`
 
     Returns
     -------
-    numpy.ndarray of floats
+    eff_wavelen :  `numpy.ndarray`
         The effective wavelength values, in a numpy array, in order of filterlist.
     """
     eff_wavelen = np.zeros(len(filterlist), float)
@@ -39,32 +39,33 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
 
     Parameters
     ----------
-    hardware : dict of ~lsst.sims.photUtils.Bandpass
+    hardware : `dict` of `Bandpass`
         The bandpasses for the hardware only.
-    system : dict of ~lsst.sims.photUtils.Bandpass
+    system : `dict` of `Bandpass`
         The bandpasses for the total system (hardware + atmosphere)
-    darksky : ~lsst.sims.photUtils.Sed or None
+    darksky : `Sed` or None
         The Sed of the dark night sky.
-        Default None, in which case it will be read from siteProperties/darksky.dat
-    exptime : float, opt
+        Default None, in which case it will be read from $SYSENG_THOUGHPUTS_DIR/siteProperties/darksky.dat
+    exptime : `float`, opt
         The open-shutter exposure time for one exposure (seconds). Default 15s.
-    nexp : int, opt
+    nexp : `int`, opt
         The number of exposures in one visit. Default 2.
-    readnoise : float, opt
+    readnoise : `float`, opt
         The readnoise for one exposure (electrons). Default 8.8 e-
-    othernoise : float, opt
+    othernoise : `float`, opt
         Additional noise to be handled like readnoise (electrons). Default 0.
-    darkcurrent : float, opt
+    darkcurrent : `float`, opt
         Dark current (electrons/second). Default 0.2 e-/s.
-    effarea : float, opt
+    effarea : `float`, opt
         Effective area of the primary mirror (cm^2). Default pi*(6.432/2 m)**2
-    X : float, opt
+    X : `float`, opt
         The airmass for the system bandpasses. Used to modify FWHMeff and Cm values.
          Default 1.0.
 
     Returns
     -------
     pd.DataFrame
+        Dataframe containing a variety of useful information about m5 and other values.
     """
     # PhotometricParameters object to calculate telescope zeropoint (1s exposure).
     photParams_zp = PhotometricParameters(exptime=1, nexp=1, gain=1, effarea=effarea,
@@ -86,8 +87,9 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     lsstDefaults = LSSTdefaults()
     # Set up dark sky and flat seds.
     if darksky is None:
+        rootDir = findRootDir()
         darksky = Sed()
-        darksky.readSED_flambda(os.path.join(getPackageDir('syseng_throughputs'),
+        darksky.readSED_flambda(os.path.join(rootDir,
                                              'siteProperties', 'darksky.dat'))
     flatSed = Sed()
     flatSed.setFlatSED()
