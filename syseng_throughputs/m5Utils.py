@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from rubin_sim.photUtils import Bandpass, Sed, SignalToNoise
 from rubin_sim.photUtils import PhotometricParameters, LSSTdefaults
+from rubin_sim.site_models import SeeingModel
 from .bandpassUtils import findRootDir
 
 filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
@@ -32,9 +33,10 @@ def get_effwavelens(system_bandpasses, filterlist):
     return eff_wavelen
 
 
-def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
+def makeM5(hardware, system, darksky=None, sky_mags=None,
+           exptime=15, nexp=2,
            readnoise=8.8, othernoise=0, darkcurrent=0.2,
-           effarea=np.pi*(6.423/2*100)**2, X=1.0):
+           effarea=np.pi*(6.423/2*100)**2, X=1.0, fwhm500=None):
     """Calculate values which are related to m5 (basically 'table2' of overview paper).
 
     Parameters
@@ -46,6 +48,9 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     darksky : `Sed` or None
         The Sed of the dark night sky.
         Default None, in which case it will be read from $SYSENG_THOUGHPUTS_DIR/siteProperties/darksky.dat
+    sky_mags : `dict` of `float` ot None
+        The magnitudes for the skybackground to use. If "None", then uses default values
+        that are derived from the darksky SED (which is properly normalized in this siteProperties directory).
     exptime : `float`, opt
         The open-shutter exposure time for one exposure (seconds). Default 15s.
     nexp : `int`, opt
@@ -61,6 +66,12 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     X : `float`, opt
         The airmass for the system bandpasses. Used to modify FWHMeff and Cm values.
          Default 1.0.
+    fwhm_500 : `float` or None, opt
+        fwhm_500 value, in arcseconds, to input into lsst seeing model.
+        Default of None uses fiducial values from rubin_sim.photUtils.LSSTdefaults, corresponding to
+        "fiducial values" for comparison to SRD (best at X=1).
+        A value of 0.62", run through the rubin_sim.site_models.SeeingModel closely recreates these values,
+        although note exactly. A value of 0.72" recreates approximate simulation median values of IQ.
 
     Returns
     -------
@@ -82,15 +93,14 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
     photParams_infinity = PhotometricParameters(exptime=exptime, nexp=nexp,
                                                 gain=1.0, readnoise=0, darkcurrent=0,
                                                 othernoise=0, effarea=effarea)
-    # lsstDefaults stores default values for the FWHMeff.
-    # See https://github.com/lsst/sims_photUtils/blob/master/python/lsst/sims/photUtils/LSSTdefaults.py
-    lsstDefaults = LSSTdefaults()
+    seeing_model = SeeingModel()
     # Set up dark sky and flat seds.
     if darksky is None:
         rootDir = findRootDir()
         darksky = Sed()
         darksky.readSED_flambda(os.path.join(rootDir,
                                              'siteProperties', 'darksky.dat'))
+
     flatSed = Sed()
     flatSed.setFlatSED()
 
@@ -108,19 +118,18 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
 
     # Calculate effective wavelengths
     eff_wavelengths = get_effwavelens(system, filterlist)
-    # Calculate the FWHM at each wavelength, for this airmass.
-    fwhm_eff_zenith = np.zeros(len(filterlist), float)
-    for i, f in enumerate(filterlist[0:7]):
-        # The original LSST filters
-        fwhm_eff_zenith[i] = lsstDefaults.FWHMeff(f)
-    if len(filterlist) > 6:
-        for i, f in enumerate(filterlist[7:]):
-            fwhm_eff_zenith[i] = np.interp(system[f].calcEffWavelen()[1],
-                                            eff_wavelengths[0:7],
-                                            fwhm_eff_zenith[0:7])
-    fwhm_eff = {}
-    for i, f in enumerate(filterlist):
-        fwhm_eff[f] = np.power(X, 0.6) * fwhm_eff_zenith[i]
+    if fwhm500 is None:
+        lsstDefaults = LSSTdefaults()
+        fwhm_eff_zenith = np.zeros(len(filterlist), float)
+        for i, f in enumerate(filterlist):
+            # The original LSST filters
+            fwhm_eff_zenith[i] = lsstDefaults.FWHMeff(f)
+        fwhm_eff = {}
+        for i, f in enumerate(filterlist):
+            fwhm_eff[f] = np.power(X, 0.6) * fwhm_eff_zenith[i]
+    else:
+        # Calculate the FWHM at each wavelength, for this airmass.
+        fwhm_eff = dict(zip(filterlist, seeing_model(fwhm500, X)['fwhmEff']))
 
     for f in system:
         # add any missing m5 fiducials and mininum values - no requirements on non-standard bands
@@ -133,16 +142,24 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
         d.Zp_t.loc[f] = system[f].calcZP_t(photParams_zp)
         d.FWHMeff.loc[f] = fwhm_eff[f]
         d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052
-        d.m5.loc[f] = SignalToNoise.calcM5(darksky, system[f], hardware[f],
+        if sky_mags is not None:
+            # Make a copy of the dark sky SED and renormalize to have expected sky mag in this band
+            sky = Sed()
+            sky.setSED(wavelen=darksky.wavelen, flambda=darksky.flambda)
+            fluxNorm = sky.calcFluxNorm(sky_mags[f], hardware[f])
+            sky.multiplyFluxNorm(fluxNorm)
+        else:
+            sky = darksky
+        d.m5.loc[f] = SignalToNoise.calcM5(sky, system[f], hardware[f],
                                            photParams_std, FWHMeff=d.FWHMeff.loc[f])
         fNorm = flatSed.calcFluxNorm(d.m5.loc[f], system[f])
         flatSed.multiplyFluxNorm(fNorm)
         d.sourceCounts.loc[f] = flatSed.calcADU(system[f], photParams=photParams_std)
         # Calculate the Skycounts expected in this bandpass.
-        d.skyCounts.loc[f] = (darksky.calcADU(hardware[f], photParams=photParams_std)
+        d.skyCounts.loc[f] = (sky.calcADU(hardware[f], photParams=photParams_std)
                               * photParams_std.platescale**2)
         # Calculate the sky surface brightness.
-        d.skyMag.loc[f] = darksky.calcMag(hardware[f])
+        d.skyMag.loc[f] = sky.calcMag(hardware[f])
         # Calculate the gamma value.
         d.gamma.loc[f] = SignalToNoise.calcGamma(system[f], d.m5.loc[f], photParams_std)
         # Calculate the "Throughput Integral" (this is the hardware + atmosphere)
@@ -159,13 +176,13 @@ def makeM5(hardware, system, darksky=None, exptime=15, nexp=2,
                        - 1.25 * np.log10((photParams_std.exptime * photParams_std.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
-        m5inf = SignalToNoise.calcM5(darksky, system[f], hardware[f],  photParams_infinity,
+        m5inf = SignalToNoise.calcM5(sky, system[f], hardware[f],  photParams_infinity,
                                      FWHMeff=d.FWHMeff.loc[f])
         Cm_infinity = (m5inf - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                        - 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
         d.dCm_infinity.loc[f] = Cm_infinity - d.Cm.loc[f]
-        m5double = SignalToNoise.calcM5(darksky, system[f], hardware[f], photParams_double,
+        m5double = SignalToNoise.calcM5(sky, system[f], hardware[f], photParams_double,
                                         FWHMeff=d.FWHMeff.loc[f])
         Cm_double = (m5double - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                      - 1.25 * np.log10(photParams_double.exptime * photParams_double.nexp / 30.0)
