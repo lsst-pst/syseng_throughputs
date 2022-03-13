@@ -168,10 +168,9 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
         # Calculate the "Sigma" 'system integral' (this is the hardware only)
         d.Sb.loc[f] = np.sum(hardware[f].sb / hardware[f].wavelen) * dwavelen
         # Calculate km - atmospheric extinction in a particular bandpass
-        d.kAtm.loc[f] = -2.5 * np.log10(d.Tb.loc[f] / d.Sb.loc[f])
+        d.kAtm.loc[f] = -2.5 * np.log10(d.Tb.loc[f] / d.Sb.loc[f]) / X
         # Calculate the Cm and Cm_Infinity values.
         # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
-        # Assumes atmosphere used in system throughput is X=1.0
         d.Cm.loc[f] = (d.m5.loc[f] - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                        - 1.25 * np.log10((photParams_std.exptime * photParams_std.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
