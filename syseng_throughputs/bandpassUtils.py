@@ -426,7 +426,7 @@ def buildMirror(mirrorDir, addLosses=True):
     return mirror
 
 
-def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12.dat'):
+def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12_aerosol.dat'):
     """
     Read an atmosphere throughput curve.
 
