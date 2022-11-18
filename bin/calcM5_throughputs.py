@@ -4,7 +4,7 @@ from __future__ import print_function
 # Calculate m5 values using the *throughputs* repo files.
 import os
 import pandas as pd
-from rubin_sims.photUtils import Bandpass, Sed, SignalToNoise
+from rubin_sims.phot_utils import Bandpass, Sed, SignalToNoise
 import syseng_throughputs as st
 
 if __name__ == '__main__':

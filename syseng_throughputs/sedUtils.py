@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-from rubin_sim.photUtils import Sed
+from rubin_sim.phot_utils import Sed
 from .bandpassUtils import findRootDir
 
 figformat = 'pdf'
@@ -44,7 +44,7 @@ def readPhotSeds(sedDir=None):
         # And for each type of object, loop through and read each SED.
         for s in sedlists[objtype]:
             sedDict[objtype][s] = Sed()
-            sedDict[objtype][s].readSED_flambda(os.path.join(sedDir, objtype, s))
+            sedDict[objtype][s].read_sed_flambda(os.path.join(sedDir, objtype, s))
     return sedDict
 
 
@@ -58,7 +58,7 @@ def readAnySeds(inputfileList, sedDir='.'):
     sedDict['any'] = {}
     for filename in inputfileList:
         sedDict['any'][filename] = Sed()
-        sedDict['any'][filename].readSED_flambda(os.path.join(sedDir, filename))
+        sedDict['any'][filename].read_sed_flambda(os.path.join(sedDir, filename))
     return sedDict
 
 
@@ -95,7 +95,7 @@ def redshiftSingleSED(sed_in, z):
     sed_out = deepcopy(sed_in)
     # Set dimming False just to keep approximate fnu normalization constant
     # (makes it easier to plot seds on same figure)
-    sed_out.redshiftSED(z, dimming=False)
+    sed_out.redshift_sed(z, dimming=False)
     return sed_out
 
 
@@ -116,8 +116,8 @@ def matchSedsBp(sedDict, bpDict, refFilter=None):
     # Check all seds in sedDict match in wavelength space.
     for objtype in sedDict:
         for s in sedDict[objtype]:
-            sedDict[objtype][s].resampleSED(wavelen_match=wavelen_match)
-            sedDict[objtype][s].flambdaTofnu()
+            sedDict[objtype][s].resample_sed(wavelen_match=wavelen_match)
+            sedDict[objtype][s].flambda_tofnu()
     return sedDict, bpDict
 
 
@@ -136,7 +136,7 @@ def calcNatMags(bandpassDict, sedDict):
             mags[objtype][s] = {}
             for f in bandpassDict.keys():
                 # Calculate the magnitudes.
-                mags[objtype][s][f] = sedDict[objtype][s].calcMag(bandpassDict[f])
+                mags[objtype][s][f] = sedDict[objtype][s].calc_mag(bandpassDict[f])
     return mags
 
 
