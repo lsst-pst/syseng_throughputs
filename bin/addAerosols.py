@@ -3,7 +3,7 @@
 import os, argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from rubin_sim.photUtils import Bandpass
+from rubin_sim.phot_utils import Bandpass
 import syseng_throughputs.bandpassUtils as bu
 
 def addAerosol(atmosphere, X, tau0=0.05, alpha=1.0, wavelen0=440.0, plotAtmosphere=True):

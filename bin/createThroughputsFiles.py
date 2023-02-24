@@ -6,7 +6,7 @@ import os
 import shutil
 import subprocess
 import numpy as np
-from rubin_sim.photUtils import Bandpass, Sed
+from rubin_sim.phot_utils import Bandpass, Sed
 import syseng_throughputs.bandpassUtils as bu
 
 # throughput files:

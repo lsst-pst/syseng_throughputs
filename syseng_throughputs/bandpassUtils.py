@@ -3,7 +3,7 @@ import pkg_resources
 from glob import glob
 import numpy as np
 import matplotlib.pyplot as plt
-from rubin_sim.photUtils import Bandpass
+from rubin_sim.phot_utils import Bandpass
 
 
 __all__ = ['setDefaultDirs', 'buildVendorDetector', 'buildDetector', 'buildFilters',
@@ -113,7 +113,7 @@ def _readLosses(componentDir):
         errmsg += ' Found no loss files.'
         raise ValueError(errmsg)
     loss = Bandpass()
-    loss.readThroughputList(lossfiles)
+    loss.read_throughput_list(lossfiles)
     return loss
 
 
@@ -148,7 +148,7 @@ def _readCoatings(componentDir):
         errmsg += ' Found no coating files.'
         raise ValueError(errmsg)
     coatings = Bandpass()
-    coatings.readThroughputList(coatingfiles)
+    coatings.read_throughput_list(coatingfiles)
     return coatings
 
 
@@ -176,11 +176,11 @@ def buildVendorDetector(vendorDir, addLosses=True):
         raise ValueError('Expected a single QE file in this directory, found: ', qefile)
     qefile = qefile[0]
     qe = Bandpass()
-    qe.readThroughput(qefile)
+    qe.read_throughput(qefile)
     if addLosses:
         loss = _readLosses(vendorDir)
-        wavelength, sb = qe.multiplyThroughputs(loss.wavelen, loss.sb)
-        qe.setBandpass(wavelength, sb)
+        wavelength, sb = qe.multiply_throughputs(loss.wavelen, loss.sb)
+        qe.set_bandpass(wavelength, sb)
     # Verify that no values go significantly below zero.
     belowzero = np.where(qe.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
@@ -244,7 +244,7 @@ def buildDetector(detectorDir, addLosses=True):
             sbAll.append(qe.sb)
         wavelen = qe.wavelen
         sbMin = (np.array(sbAll)).min(axis=0)
-        qe.setBandpass(wavelen, sbMin)
+        qe.set_bandpass(wavelen, sbMin)
     return qe
 
 
@@ -277,13 +277,13 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     for f in filterfiles:
         fname = os.path.split(f)[1].split('_')[0]
         filters[fname] = Bandpass()
-        filters[fname].readThroughput(f)
+        filters[fname].read_throughput(f)
     if addLosses:
         # Read and multiply the losses.
         loss = _readLosses(filterDir)
         for f in filters:
-            wavelen, sb = filters[f].multiplyThroughputs(loss.wavelen, loss.sb)
-            filters[f].setBandpass(wavelen, sb)
+            wavelen, sb = filters[f].multiply_throughputs(loss.wavelen, loss.sb)
+            filters[f].set_bandpass(wavelen, sb)
     # Verify that no values go significantly below zero.
     for f in filters:
         belowzero = np.where(filters[f].sb < 0)
@@ -361,21 +361,21 @@ def buildLens(lensDir, addLosses=True):
         raise ValueError('Expected a single glass file in this directory, found: ', glassfile)
     glassfile = glassfile[0]
     glass = Bandpass()
-    glass.readThroughput(glassfile)
+    glass.read_throughput(glassfile)
     # Smooth the glass response.
     smoothSb = savitzky_golay(glass.sb, 31, 3)
     lens = Bandpass()
-    lens.setBandpass(glass.wavelen, smoothSb)
+    lens.set_bandpass(glass.wavelen, smoothSb)
     # Read the broad band antireflective (BBAR) coatings files.
     bbars = _readCoatings(lensDir)
     # Multiply the bbars by the glass.
-    wavelen, sb = lens.multiplyThroughputs(bbars.wavelen, bbars.sb)
-    lens.setBandpass(wavelen, sb)
+    wavelen, sb = lens.multiply_throughputs(bbars.wavelen, bbars.sb)
+    lens.set_bandpass(wavelen, sb)
     # Add losses.
     if addLosses:
         loss = _readLosses(lensDir)
-        wavelen, sb = lens.multiplyThroughputs(loss.wavelen, loss.sb)
-        lens.setBandpass(wavelen, sb)
+        wavelen, sb = lens.multiply_throughputs(loss.wavelen, loss.sb)
+        lens.set_bandpass(wavelen, sb)
     # Verify that no values go significantly below zero.
     belowzero = np.where(lens.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
@@ -411,11 +411,11 @@ def buildMirror(mirrorDir, addLosses=True):
         raise ValueError('Expected a single mirror file in directory %s, found: ' %mirrorDir, mirrorfile)
     mirrorfile = mirrorfile[0]
     mirror = Bandpass()
-    mirror.readThroughput(mirrorfile)
+    mirror.read_throughput(mirrorfile)
     if addLosses:
         loss = _readLosses(mirrorDir)
-        wavelen, sb = mirror.multiplyThroughputs(loss.wavelen, loss.sb)
-        mirror.setBandpass(wavelen, sb)
+        wavelen, sb = mirror.multiply_throughputs(loss.wavelen, loss.sb)
+        mirror.set_bandpass(wavelen, sb)
     # Verify that no values go significantly below zero.
     belowzero = np.where(mirror.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
@@ -445,7 +445,7 @@ def readAtmosphere(atmosDir, atmosFile='pachonModtranAtm_12_aerosol.dat'):
     """
     atmofile = os.path.join(atmosDir, atmosFile)
     atmo = Bandpass()
-    atmo.readThroughput(atmofile)
+    atmo.read_throughput(atmofile)
     # Verify that no values go significantly below zero.
     belowzero = np.where(atmo.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
@@ -514,8 +514,8 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None,
         hardware[f] = Bandpass()
         system[f] = Bandpass()
         hw_sb = core_sb * filters[f].sb
-        hardware[f].setBandpass(wavelen, hw_sb)
-        system[f].setBandpass(wavelen, hw_sb*atmosphere.sb)
+        hardware[f].set_bandpass(wavelen, hw_sb)
+        system[f].set_bandpass(wavelen, hw_sb*atmosphere.sb)
     return hardware, system
 
 
