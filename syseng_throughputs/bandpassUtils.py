@@ -31,7 +31,7 @@ The losses for each component can be chosen to be added or not.
 #   containing the throughput response. The name of this file varies. For the glass for
 #   lens components, the glass throughput curve must be smoothed by a savitzky_golay function.
 
-belowZeroThreshhold = -1.0e-6
+belowZeroThreshhold = -0.02
 filterlist = ('u', 'g', 'r', 'i', 'z', 'y')
 filtercolors = {'u':'b', 'g':'c', 'r':'g',
                 'i':'y', 'z':'r', 'y':'m'}
@@ -312,7 +312,7 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     try:
         window_size = np.abs(int(window_size))
         order = np.abs(int(order))
-    except(ValueError):
+    except(ValueError, msg):
         raise ValueError("window_size and order have to be of type int")
     if window_size % 2 != 1 or window_size < 1:
         raise TypeError("window_size size must be a positive odd number")

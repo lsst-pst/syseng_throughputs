@@ -34,7 +34,8 @@ def get_effwavelens(system_bandpasses, filterlist):
 
 
 def makeM5(hardware, system, darksky=None, sky_mags=None,
-           exptime=15, nexp=2,
+           exptime={'u': 30, 'g': 15, 'r': 15, 'i': 15, 'z': 15, 'y': 15},
+           nexp={'u': 1, 'g': 2, 'r': 2, 'i': 2, 'z': 2, 'y': 2},
            readnoise=8.8, othernoise=0, darkcurrent=0.2,
            effarea=np.pi*(6.423/2*100)**2, X=1.0, fwhm500=None):
     """Calculate values which are related to m5 (basically 'table2' of overview paper).
@@ -51,10 +52,12 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
     sky_mags : `dict` of `float` ot None
         The magnitudes for the skybackground to use. If "None", then uses default values
         that are derived from the darksky SED (which is properly normalized in this siteProperties directory).
-    exptime : `float`, opt
-        The open-shutter exposure time for one exposure (seconds). Default 15s.
-    nexp : `int`, opt
-        The number of exposures in one visit. Default 2.
+    exptime : `float` or `dict` of `float` opt
+        The open-shutter exposure time for one exposure (seconds).
+        Default {'u': 30, 'g': 15, 'r': 15, etc.}
+    nexp : `int` or `dict` of `int`, opt
+        The number of exposures in one visit.
+        Default {'u': 1, 'g': 2, 'r': 2, etc}.
     readnoise : `float`, opt
         The readnoise for one exposure (electrons). Default 8.8 e-
     othernoise : `float`, opt
@@ -71,7 +74,8 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
         Default of None uses fiducial values from rubin_sim.photUtils.LSSTdefaults, corresponding to
         "fiducial values" for comparison to SRD (best at X=1).
         A value of 0.62", run through the rubin_sim.site_models.SeeingModel closely recreates these values,
-        although note exactly. A value of 0.72" recreates approximate simulation median values of IQ.
+        although not exactly.
+        A value of 0.72" recreates approximate simulation median values of IQ.
 
     Returns
     -------
@@ -82,17 +86,6 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
     photParams_zp = PhotometricParameters(exptime=1, nexp=1, gain=1, effarea=effarea,
                                           readnoise=readnoise, othernoise=othernoise,
                                           darkcurrent=darkcurrent)
-    # PhotometricParameters object for "real" visit.
-    photParams_std = PhotometricParameters(exptime=exptime, nexp=nexp,
-                                           gain=1.0, effarea=effarea, readnoise=readnoise,
-                                           othernoise=othernoise, darkcurrent=darkcurrent)
-    photParams_double = PhotometricParameters(exptime=2*exptime, nexp=nexp,
-                                              gain=1.0, effarea=effarea, readnoise=readnoise,
-                                              othernoise=othernoise, darkcurrent=darkcurrent)
-    # PhotometricParameters object for "no noise" visit.
-    photParams_infinity = PhotometricParameters(exptime=exptime, nexp=nexp,
-                                                gain=1.0, readnoise=0, darkcurrent=0,
-                                                othernoise=0, effarea=effarea)
     seeing_model = SeeingModel()
     # Set up dark sky and flat seds.
     if darksky is None:
@@ -105,7 +98,7 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
     flatSed.set_flat_sed()
 
     # Now set up dataframe. filters x properties.
-    properties = ['FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
+    properties = ['nexp', 'exptime', 'FWHMeff', 'FWHMgeom', 'skyMag', 'skyCounts', 'Zp_t',
                   'Tb', 'Sb', 'kAtm', 'gamma', 'Cm', 'dCm_infinity', 'dCm_double', 'm5', 'sourceCounts',
                   'm5_fid', 'm5_min']
 
@@ -132,6 +125,27 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
         fwhm_eff = dict(zip(filterlist, seeing_model(fwhm500, X)['fwhmEff']))
 
     for f in system:
+        if isinstance(exptime, dict):
+            expt = exptime[f]
+        else:
+            expt = exptime
+        if isinstance(nexp, dict):
+            nexpt = nexp[f]
+        else:
+            nexpt = nexp
+        d.nexp.loc[f] = nexpt
+        d.exptime.loc[f] = expt
+        # PhotometricParameters object for "real" visit.
+        photParams_std = PhotometricParameters(exptime=expt, nexp=nexpt,
+                                               gain=1.0, effarea=effarea, readnoise=readnoise,
+                                               othernoise=othernoise, darkcurrent=darkcurrent)
+        photParams_double = PhotometricParameters(exptime=2 * expt, nexp=nexpt,
+                                                  gain=1.0, effarea=effarea, readnoise=readnoise,
+                                                  othernoise=othernoise, darkcurrent=darkcurrent)
+        # PhotometricParameters object for "no noise" visit.
+        photParams_infinity = PhotometricParameters(exptime=expt, nexp=nexpt,
+                                                    gain=1.0, readnoise=0, darkcurrent=0,
+                                                    othernoise=0, effarea=effarea)
         # add any missing m5 fiducials and mininum values - no requirements on non-standard bands
         if f in m5_min.keys():
             d.m5_fid.loc[f] = m5_fid[f]
@@ -188,8 +202,9 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
                      + d.kAtm.loc[f] * (X - 1.0))
         d.dCm_double.loc[f] = Cm_infinity - Cm_double
 
-    m5_cm = (d.Cm + 0.5*(d.skyMag - 21.0) + 2.5*np.log10(0.7/d.FWHMeff) - d.kAtm*(X-1.0)
-             + 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0))
-    if np.any(m5_cm - d.m5 > 0.001):
-        raise ValueError('m5 from Cm does not match m5 from photUtils.')
+        m5_cm = (d.Cm.loc[f] + 0.5*(d.skyMag.loc[f] - 21.0) + 2.5*np.log10(0.7/d.FWHMeff.loc[f])
+                 - d.kAtm.loc[f]*(X-1.0)
+                 + 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0))
+        if m5_cm - d.m5.loc[f] > 0.001:
+            raise ValueError(f'm5 from Cm does not match m5 from photUtils in filter {f}')
     return d
