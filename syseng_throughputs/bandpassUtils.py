@@ -298,7 +298,7 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
             effphi, effsb = filters[f].calcEffWavelen()
             shift = shiftFilters/100.0 * effsb
             filters[f].wavelen = filters[f].wavelen + shift
-            filters[f].resampleBandpass()
+            filters[f].resample_bandpass()
             filters[f].sbTophi()
     return filters
 
@@ -310,9 +310,9 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     """
     # y = throughput for lenses
     try:
-        window_size = np.abs(np.int(window_size))
-        order = np.abs(np.int(order))
-    except(ValueError, msg):
+        window_size = np.abs(int(window_size))
+        order = np.abs(int(order))
+    except(ValueError):
         raise ValueError("window_size and order have to be of type int")
     if window_size % 2 != 1 or window_size < 1:
         raise TypeError("window_size size must be a positive odd number")
@@ -495,16 +495,18 @@ def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None,
     mirror1 = buildMirror(defaultDirs['mirror1'], addLosses)
     mirror2 = buildMirror(defaultDirs['mirror2'], addLosses)
     mirror3 = buildMirror(defaultDirs['mirror3'], addLosses)
+    # set everything to default wavelength binning
+    for bp in [detector, lens1, lens2, lens3, mirror1, mirror2, mirror3]:
+        bp.resample_bandpass()
+    for key in filters:
+        filters[key].resample_bandpass()
     if atmosphereOverride is None:
         atmosphere = readAtmosphere(defaultDirs['atmosphere'])
     else:
         atmosphere = atmosphereOverride
         if np.all(atmosphere.wavelen != detector.wavelen):
-            atmosphere.resampleBandpass(wavelen_min = detector.wavelen_min,
-                                        wavelen_max = detector.wavelen_max,
-                                        wavelen_step = detector.wavelen_step)
+            atmosphere.resample_bandpass()
     # Combine the individual components.
-    # Note that the process of reading in the files above would have put them onto the same wavelength grid.
     core_sb = (detector.sb * lens1.sb * lens2.sb * lens3.sb
                * mirror1.sb * mirror2.sb * mirror3.sb)
     wavelen = detector.wavelen
