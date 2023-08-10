@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
-from rubin_sim.phot_utils import Bandpass, Sed, SignalToNoise
+from rubin_sim.phot_utils import Bandpass, Sed
+from rubin_sim.phot_utils import signaltonoise as SignalToNoise
 from rubin_sim.phot_utils import PhotometricParameters, LSSTdefaults
 from rubin_sim.site_models import SeeingModel
 from .bandpassUtils import findRootDir
