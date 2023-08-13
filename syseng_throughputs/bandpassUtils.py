@@ -213,7 +213,9 @@ def buildVendorDetector(vendorDir, addLosses=True):
         raise ValueError("Expected a single QE file in this directory, found: ", qefile)
     qefile = qefile[0]
     qe = Bandpass()
-    qe.read_throughput(qefile)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        qe.read_throughput(qefile)
     qe.resample_bandpass(
         wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
     )
@@ -321,7 +323,9 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     for f in filterfiles:
         fname = os.path.split(f)[1].split("_")[0]
         filters[fname] = Bandpass()
-        filters[fname].read_throughput(f)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            filters[fname].read_throughput(f)
         filters[fname].resample_bandpass(
             wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
         )
@@ -414,7 +418,9 @@ def buildLens(lensDir, addLosses=True):
         )
     glassfile = glassfile[0]
     glass = Bandpass()
-    glass.read_throughput(glassfile)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        glass.read_throughput(glassfile)
     glass.resample_bandpass(
         wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
     )
@@ -470,7 +476,9 @@ def buildMirror(mirrorDir, addLosses=True):
         )
     mirrorfile = mirrorfile[0]
     mirror = Bandpass()
-    mirror.read_throughput(mirrorfile)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mirror.read_throughput(mirrorfile)
     mirror.resample_bandpass(
         wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
     )
@@ -507,7 +515,9 @@ def readAtmosphere(atmosDir, atmosFile="pachonModtranAtm_12_aerosol.dat"):
     """
     atmofile = os.path.join(atmosDir, atmosFile)
     atmo = Bandpass()
-    atmo.read_throughput(atmofile)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        atmo.read_throughput(atmofile)
     atmo.resample_bandpass(
         wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
     )
@@ -564,11 +574,7 @@ def buildHardwareAndSystem(
     mirror1 = buildMirror(defaultDirs["mirror1"], addLosses)
     mirror2 = buildMirror(defaultDirs["mirror2"], addLosses)
     mirror3 = buildMirror(defaultDirs["mirror3"], addLosses)
-    # set everything to default wavelength binning
-    for bp in [detector, lens1, lens2, lens3, mirror1, mirror2, mirror3]:
-        bp.resample_bandpass()
-    for key in filters:
-        filters[key].resample_bandpass()
+    # set above was set to default wavelength binning
     if atmosphereOverride is None:
         atmosphere = readAtmosphere(defaultDirs["atmosphere"])
     else:
