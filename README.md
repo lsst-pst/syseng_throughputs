@@ -29,6 +29,12 @@ The python code requires [rubin_sim](https://github.com/lsst/rubin_sim) to run.
 After installation of rubin_sim, install syseng_throughputs into the same python environment using
 ```pip install -e .```
 
+# Release 1.8 #
+
+This update includes as-measured filter throughput curves and as-measured glass and coating measurements for the lenses.
+The mirror reflectivities are also all updated to as-measured curves for Al and Ag, but the mirror coatings are assumed to remain Al-Ag-Al in this tag. 
+
+
 # Release 1.7 #
 
   The M2 reflectivity was updated based on witness sample measurements from M2 coating run in July 2019. The PR for this update is https://github.com/lsst-pst/syseng_throughputs/pull/12. The notebooks showing what has changed and the updated m5 calculations are found in the "documentation" subdirectory.
