@@ -11,7 +11,7 @@ def addAerosol(atmosphere, X, tau0=0.05, alpha=1.0, wavelen0=440.0, plotAtmosphe
     tau = tau0 * np.power((wavelen0/atmosphere.wavelen), alpha)
     # Generate new atmosphere bandpass with aerosols.
     atmosphere_aerosol = Bandpass()
-    atmosphere_aerosol.setBandpass(wavelen = atmosphere.wavelen,
+    atmosphere_aerosol.set_bandpass(wavelen = atmosphere.wavelen,
                                    sb = atmosphere.sb * np.exp(-tau*X))
 
     if plotAtmosphere:
@@ -37,6 +37,6 @@ if __name__=='__main__':
     atmosphere_aerosol = addAerosol(atmosphere, args.airmass)
 
     outfile = atmosphere.bandpassname.replace('.dat', '') + '_aerosol.dat'
-    atmosphere_aerosol.writeThroughput(outfile, print_header='Added aerosol component')
+    atmosphere_aerosol.write_throughput(outfile, print_header='Added aerosol component')
 
     plt.show()

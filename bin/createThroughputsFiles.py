@@ -36,7 +36,7 @@ if __name__ == '__main__':
     atmos_std = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='pachonModtranAtm_12_aerosol.dat')
     atmos_10 = bu.readAtmosphere(defaultDirs['atmosphere'], atmosFile='atmos_10_aerosol.dat')
     darksky = Sed()
-    darksky.readSED_flambda(os.path.join(defaultDirs['atmosphere'], 'darksky.dat'))
+    darksky.read_sed_flambda(os.path.join(defaultDirs['atmosphere'], 'darksky.dat'))
     hardware, system = bu.buildHardwareAndSystem(defaultDirs, addLosses=addLosses, atmosphereOverride=atmos_std)
 
     # Write the data to disk.
@@ -72,23 +72,23 @@ if __name__ == '__main__':
         perfilterheader[f] += '# Wavelen_cutoff_RED %.2f\n' % (wavelen_red)
 
 
-    detector.writeThroughput(os.path.join(outDir, 'detector.dat'), print_header=header)
-    lens1.writeThroughput(os.path.join(outDir, 'lens1.dat'), print_header=header)
-    lens2.writeThroughput(os.path.join(outDir, 'lens2.dat'), print_header=header)
-    lens3.writeThroughput(os.path.join(outDir, 'lens3.dat'), print_header=header)
-    m1.writeThroughput(os.path.join(outDir, 'm1.dat'), print_header=header)
-    m2.writeThroughput(os.path.join(outDir, 'm2.dat'), print_header=header)
-    m3.writeThroughput(os.path.join(outDir, 'm3.dat'), print_header=header)
-    atmos_std.writeThroughput(os.path.join(outDir, 'atmos_std.dat'), print_header=atmosheader)
-    atmos_10.writeThroughput(os.path.join(outDir, 'atmos_10.dat'), print_header=atmosheader)
-    darksky.writeSED(os.path.join(outDir, 'darksky.dat'), print_header=skyheader)
+    detector.write_throughput(os.path.join(outDir, 'detector.dat'), print_header=header)
+    lens1.write_throughput(os.path.join(outDir, 'lens1.dat'), print_header=header)
+    lens2.write_throughput(os.path.join(outDir, 'lens2.dat'), print_header=header)
+    lens3.write_throughput(os.path.join(outDir, 'lens3.dat'), print_header=header)
+    m1.write_throughput(os.path.join(outDir, 'm1.dat'), print_header=header)
+    m2.write_throughput(os.path.join(outDir, 'm2.dat'), print_header=header)
+    m3.write_throughput(os.path.join(outDir, 'm3.dat'), print_header=header)
+    atmos_std.write_throughput(os.path.join(outDir, 'atmos_std.dat'), print_header=atmosheader)
+    atmos_10.write_throughput(os.path.join(outDir, 'atmos_10.dat'), print_header=atmosheader)
+    darksky.write_sed(os.path.join(outDir, 'darksky.dat'), print_header=skyheader)
 
     for f in filters:
-        filters[f].writeThroughput(os.path.join(outDir, 'filter_%s.dat' %(f)),
+        filters[f].write_throughput(os.path.join(outDir, 'filter_%s.dat' %(f)),
                                    print_header=header+perfilterheader[f])
-        hardware[f].writeThroughput(os.path.join(outDir, 'hardware_%s.dat' %(f)),
+        hardware[f].write_throughput(os.path.join(outDir, 'hardware_%s.dat' %(f)),
                                     print_header=header+perfilterheader[f])
-        system[f].writeThroughput(os.path.join(outDir, 'total_%s.dat' %(f)),
+        system[f].write_throughput(os.path.join(outDir, 'total_%s.dat' %(f)),
                                   print_header=systemheader+perfilterheader[f])
 
 
