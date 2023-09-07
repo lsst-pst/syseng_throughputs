@@ -45,8 +45,12 @@ if __name__ == '__main__':
         os.makedirs(outDir)
 
     # Create the README for the throughputs baseline directory.
-    shutil.copy('throughputs_header.txt', os.path.join(outDir, 'README.md'))
-    shutil.copy('../README.md', os.path.join(outDir, 'README_SOURCE.md'))
+    with open('throughputs_header.txt', 'r') as header:
+        readme_txt1 = header.read()
+    with open('../README.md', 'r') as versions:
+        readme_txt2 = versions.read()
+    with open(os.path.join(outDir, 'README.md'), 'w') as outfile:
+        outfile.write(readme_txt1 + readme_txt2)
 
     version = subprocess.check_output(['git', 'describe', '--tags']).strip().decode("utf-8")
     sha1 = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
@@ -65,7 +69,7 @@ if __name__ == '__main__':
 
     perfilterheader = {}
     for f in filters:
-        good = np.where(filters[f].sb > 0)[0]
+        good = np.where(filters[f].sb > 0.005)[0]
         wavelen_blue = filters[f].wavelen[good[0]-1]
         wavelen_red = filters[f].wavelen[good[-1]+1]
         perfilterheader[f] = '# Wavelen_cutoff_BLUE %.2f\n' % (wavelen_blue)

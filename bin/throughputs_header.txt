@@ -23,4 +23,5 @@ system - mirrors, lenses, filter, detector, and the zenith atmos_std.dat atmosph
 
 All curves are in nanometers, with throughput represented by a number between 0 and 1.
 
-### Information about the source of these files is available in README_SOURCE.md ###
+## The source of the
+throughputs data here is [syseng_throughputs](https://github.com/lsst-pst/syseng_throughputs) ##
