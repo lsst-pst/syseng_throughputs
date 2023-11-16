@@ -1,10 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
-from rubin_sim.phot_utils import Bandpass, Sed
+from rubin_sim.phot_utils import Sed
 from rubin_sim.phot_utils import signaltonoise as SignalToNoise
-from rubin_sim.phot_utils import PhotometricParameters, LSSTdefaults
-from rubin_sim.site_models import SeeingModel
+from rubin_sim.phot_utils import PhotometricParameters
+from rubin_scheduler.site_models import SeeingModel
 from .bandpassUtils import findRootDir
 
 filterlist = ['u', 'g', 'r', 'i', 'z', 'y']
@@ -14,6 +14,9 @@ filtercolors = {'u':'b', 'g':'c', 'r':'g',
 # Fiducial M5 values from the SRD
 m5_fid = {'u': 23.9, 'g': 25.0, 'r': 24.7, 'i': 24.0, 'z': 23.3, 'y': 22.1}
 m5_min = {'u': 23.4, 'g': 24.6, 'r': 24.3, 'i': 23.6, 'z': 22.9, 'y': 21.7}
+# Default seeing values from the over view paper 
+# (arXiv 0805.2366, Table 2, 29 August 2014 version)
+fwhm_eff_zenith = {"u": 0.92, "g": 0.87, "r": 0.83, "i": 0.80, "z": 0.78, "y": 0.76}
 
 
 def get_effwavelens(system_bandpasses, filterlist):
@@ -72,7 +75,7 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
          Default 1.0.
     fwhm_500 : `float` or None, opt
         fwhm_500 value, in arcseconds, to input into lsst seeing model.
-        Default of None uses fiducial values from rubin_sim.photUtils.LSSTdefaults, corresponding to
+        Default of None uses fiducial values set above as `fwhm_eff_zenith`, corresponding to
         "fiducial values" for comparison to SRD (best at X=1).
         A value of 0.62", run through the rubin_sim.site_models.SeeingModel closely recreates these values,
         although not exactly.
@@ -110,17 +113,10 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
     # Now set up dataframe to hold outputs
     d = pd.DataFrame(index=filterlist, columns=properties, dtype='float')
 
-    # Calculate effective wavelengths
-    eff_wavelengths = get_effwavelens(system, filterlist)
     if fwhm500 is None:
-        lsstDefaults = LSSTdefaults()
-        fwhm_eff_zenith = np.zeros(len(filterlist), float)
-        for i, f in enumerate(filterlist):
-            # The original LSST filters
-            fwhm_eff_zenith[i] = lsstDefaults.fwhm_eff(f)
         fwhm_eff = {}
-        for i, f in enumerate(filterlist):
-            fwhm_eff[f] = np.power(X, 0.6) * fwhm_eff_zenith[i]
+        for f in filterlist:
+            fwhm_eff[f] = np.power(X, 0.6) * fwhm_eff_zenith[f]
     else:
         # Calculate the FWHM at each wavelength, for this airmass.
         fwhm_eff = dict(zip(filterlist, seeing_model(fwhm500, X)['fwhmEff']))
@@ -166,7 +162,7 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
         else:
             sky = darksky
         d.m5.loc[f] = SignalToNoise.calc_m5(sky, system[f], hardware[f],
-                                           photParams_std, fwhm_eff=d.FWHMeff.loc[f])
+                                            photParams_std, fwhm_eff=d.FWHMeff.loc[f])
         fNorm = flatSed.calc_flux_norm(d.m5.loc[f], system[f])
         flatSed.multiply_flux_norm(fNorm)
         d.sourceCounts.loc[f] = flatSed.calc_adu(system[f], phot_params=photParams_std)
@@ -190,14 +186,14 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
                        - 1.25 * np.log10((photParams_std.exptime * photParams_std.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
-        m5inf = SignalToNoise.calc_m5(sky, system[f], hardware[f],  photParams_infinity,
-                                     fwhm_eff=d.FWHMeff.loc[f])
+        m5inf = SignalToNoise.calc_m5(sky, system[f], hardware[f], photParams_infinity,
+                                      fwhm_eff=d.FWHMeff.loc[f])
         Cm_infinity = (m5inf - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                        - 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
         d.dCm_infinity.loc[f] = Cm_infinity - d.Cm.loc[f]
         m5double = SignalToNoise.calc_m5(sky, system[f], hardware[f], photParams_double,
-                                        fwhm_eff=d.FWHMeff.loc[f])
+                                         fwhm_eff=d.FWHMeff.loc[f])
         Cm_double = (m5double - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                      - 1.25 * np.log10(photParams_double.exptime * photParams_double.nexp / 30.0)
                      + d.kAtm.loc[f] * (X - 1.0))
