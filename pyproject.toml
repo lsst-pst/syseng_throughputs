@@ -21,7 +21,7 @@ urls = {repository = "https://github.com/lsst-pst/syseng_throughputs" }
 dynamic = [ "version" ]
 dependencies = [
     "numpy",
-    "rubin_sim",
+    "rubin_sim < 2",
 ]
 
 
