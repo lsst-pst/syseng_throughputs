@@ -130,8 +130,8 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
             nexpt = nexp[f]
         else:
             nexpt = nexp
-        d.nexp.loc[f] = nexpt
-        d.exptime.loc[f] = expt
+        d.loc[f, "nexp"] = nexpt
+        d.loc[f, "exptime"] = expt
         # PhotometricParameters object for "real" visit.
         photParams_std = PhotometricParameters(exptime=expt, nexp=nexpt,
                                                gain=1.0, effarea=effarea, readnoise=readnoise,
@@ -145,14 +145,14 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
                                                     othernoise=0, effarea=effarea)
         # add any missing m5 fiducials and mininum values - no requirements on non-standard bands
         if f in m5_min.keys():
-            d.m5_fid.loc[f] = m5_fid[f]
-            d.m5_min.loc[f] = m5_min[f]
+            d.loc[f, "m5_fid"] = m5_fid[f]
+            d.loc[f, "m5_min"] = m5_min[f]
         else:
-            d.m5_fid.loc[f] = -666
-            d.m5_min.loc[f] = -666
-        d.Zp_t.loc[f] = system[f].calc_zp_t(photParams_zp)
-        d.FWHMeff.loc[f] = fwhm_eff[f]
-        d.FWHMgeom.loc[f] = 0.822 * d.FWHMeff.loc[f] + 0.052
+            d.loc[f, "m5_fid"] = -666
+            d.loc[f, "m5_min"] = -666
+        d.loc[f, "Zp_t"] = system[f].calc_zp_t(photParams_zp)
+        d.loc[f, "FWHMeff"] = fwhm_eff[f]
+        d.loc[f, "FWHMgeom"] = 0.822 * d.FWHMeff.loc[f] + 0.052
         if sky_mags is not None:
             # Make a copy of the dark sky SED and renormalize to have expected sky mag in this band
             sky = Sed()
@@ -161,28 +161,28 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
             sky.multiply_flux_norm(fluxNorm)
         else:
             sky = darksky
-        d.m5.loc[f] = SignalToNoise.calc_m5(sky, system[f], hardware[f],
+        d.loc[f, "m5"] = SignalToNoise.calc_m5(sky, system[f], hardware[f],
                                             photParams_std, fwhm_eff=d.FWHMeff.loc[f])
         fNorm = flatSed.calc_flux_norm(d.m5.loc[f], system[f])
         flatSed.multiply_flux_norm(fNorm)
-        d.sourceCounts.loc[f] = flatSed.calc_adu(system[f], phot_params=photParams_std)
+        d.loc[f, "sourceCounts"] = flatSed.calc_adu(system[f], phot_params=photParams_std)
         # Calculate the Skycounts expected in this bandpass.
-        d.skyCounts.loc[f] = (sky.calc_adu(hardware[f], phot_params=photParams_std)
+        d.loc[f, "skyCounts"] = (sky.calc_adu(hardware[f], phot_params=photParams_std)
                               * photParams_std.platescale**2)
         # Calculate the sky surface brightness.
-        d.skyMag.loc[f] = sky.calc_mag(hardware[f])
+        d.loc[f, "skyMag"] = sky.calc_mag(hardware[f])
         # Calculate the gamma value.
-        d.gamma.loc[f] = SignalToNoise.calc_gamma(system[f], d.m5.loc[f], photParams_std)
+        d.loc[f, "gamma"] = SignalToNoise.calc_gamma(system[f], d.m5.loc[f], photParams_std)
         # Calculate the "Throughput Integral" (this is the hardware + atmosphere)
         dwavelen = np.mean(np.diff(system[f].wavelen))
-        d.Tb.loc[f] = np.sum(system[f].sb / system[f].wavelen) * dwavelen
+        d.loc[f, "Tb"] = np.sum(system[f].sb / system[f].wavelen) * dwavelen
         # Calculate the "Sigma" 'system integral' (this is the hardware only)
-        d.Sb.loc[f] = np.sum(hardware[f].sb / hardware[f].wavelen) * dwavelen
+        d.loc[f, "Sb"] = np.sum(hardware[f].sb / hardware[f].wavelen) * dwavelen
         # Calculate km - atmospheric extinction in a particular bandpass
-        d.kAtm.loc[f] = -2.5 * np.log10(d.Tb.loc[f] / d.Sb.loc[f]) / X
+        d.loc[f, "kAtm"] = -2.5 * np.log10(d.Tb.loc[f] / d.Sb.loc[f]) / X
         # Calculate the Cm and Cm_Infinity values.
         # m5 = Cm + 0.5*(msky - 21) + 2.5log10(0.7/FWHMeff) + 1.25log10(t/30) - km(X-1.0)
-        d.Cm.loc[f] = (d.m5.loc[f] - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
+        d.loc[f, "Cm"] = (d.m5.loc[f] - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                        - 1.25 * np.log10((photParams_std.exptime * photParams_std.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
         # Calculate Cm_Infinity by setting readout noise to zero.
@@ -191,17 +191,17 @@ def makeM5(hardware, system, darksky=None, sky_mags=None,
         Cm_infinity = (m5inf - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                        - 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0)
                        + d.kAtm.loc[f] * (X - 1.0))
-        d.dCm_infinity.loc[f] = Cm_infinity - d.Cm.loc[f]
+        d.loc[f, "dCm_infinity"] = Cm_infinity - d.Cm.loc[f]
         m5double = SignalToNoise.calc_m5(sky, system[f], hardware[f], photParams_double,
                                          fwhm_eff=d.FWHMeff.loc[f])
         Cm_double = (m5double - 0.5 * (d.skyMag.loc[f] - 21) - 2.5 * np.log10(0.7 / d.FWHMeff.loc[f])
                      - 1.25 * np.log10(photParams_double.exptime * photParams_double.nexp / 30.0)
                      + d.kAtm.loc[f] * (X - 1.0))
-        d.dCm_double.loc[f] = Cm_infinity - Cm_double
+        d.loc[f, "dCm_double"] = Cm_infinity - Cm_double
 
-        m5_cm = (d.Cm.loc[f] + 0.5*(d.skyMag.loc[f] - 21.0) + 2.5*np.log10(0.7/d.FWHMeff.loc[f])
-                 - d.kAtm.loc[f]*(X-1.0)
+        m5_cm = (d.loc[f, "Cm"] + 0.5*(d.loc[f, "skyMag"] - 21.0) + 2.5*np.log10(0.7/d.loc[f, "FWHMeff"])
+                 - d.loc[f, "kAtm"]*(X-1.0)
                  + 1.25 * np.log10((photParams_infinity.exptime * photParams_infinity.nexp) / 30.0))
-        if m5_cm - d.m5.loc[f] > 0.001:
+        if m5_cm - d.loc[f, "m5"] > 0.001:
             raise ValueError(f'm5 from Cm does not match m5 from photUtils in filter {f}')
     return d
