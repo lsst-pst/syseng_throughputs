@@ -3,6 +3,7 @@ import warnings
 import pkg_resources
 from glob import glob
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from rubin_sim.phot_utils import Bandpass
 
@@ -227,7 +228,7 @@ def buildVendorDetector(vendorDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(qe.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if qe.sb[belowzero] < belowZeroThreshhold:
+    if np.any(qe.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in QE response significantly below zero.")
     # If they are just small errors in interpolation, set to zero.
     qe.sb[belowzero] = 0
@@ -340,7 +341,7 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     for f in filters:
         belowzero = np.where(filters[f].sb < 0)
         # If there are QE values significantly < 0, raise an exception.
-        if np.where(filters[f].sb[belowzero] < belowZeroThreshhold)[0].size > 0:
+        if np.any(filters[f].sb[belowzero] < belowZeroThreshhold):
             raise ValueError(
                 "Found values in filter response significantly below zero in %s filter"
                 % f
@@ -379,7 +380,7 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     b = np.asmatrix(
         [[k**i for i in order_range] for k in range(-half_window, half_window + 1)]
     )
-    m = np.linalg.pinv(b).A[deriv] * rate**deriv * np.math.factorial(deriv)
+    m = np.linalg.pinv(b).A[deriv] * rate**deriv * math.factorial(deriv)
     # pad the signal at the extremes with
     # values taken from the signal itself
     firstvals = y[0] - np.abs(y[1 : half_window + 1][::-1] - y[0])
@@ -442,7 +443,7 @@ def buildLens(lensDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(lens.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if lens.sb[belowzero] < belowZeroThreshhold:
+    if np.any(lens.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in lens throughput significantly below zero.")
     # If they are just small errors in interpolation, set to zero.
     lens.sb[belowzero] = 0
@@ -490,7 +491,7 @@ def buildMirror(mirrorDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(mirror.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if mirror.sb[belowzero] < belowZeroThreshhold:
+    if np.any(mirror.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in mirror response significantly below zero")
     # If they are just small errors in interpolation, set to zero.
     mirror.sb[belowzero] = 0
@@ -525,7 +526,7 @@ def readAtmosphere(atmosDir, atmosFile="pachonModtranAtm_12_aerosol.dat"):
     # Verify that no values go significantly below zero.
     belowzero = np.where(atmo.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if atmo.sb[belowzero] < belowZeroThreshhold:
+    if np.any(atmo.sb[belowzero] < belowZeroThreshhold):
         raise ValueError(
             "Found values in atmospheric transmission significantly below zero"
         )
