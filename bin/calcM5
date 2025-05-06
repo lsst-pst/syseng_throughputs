@@ -2,6 +2,7 @@
 
 # Calculate m5 values using the SYSENG_THROUGHPUTS files.
 import pandas as pd
+
 import syseng_throughputs as st
 
 if __name__ == '__main__':

@@ -1,11 +1,12 @@
+import math
 import os
 import warnings
-import pkg_resources
 from glob import glob
-import numpy as np
-import matplotlib.pyplot as plt
-from rubin_sim.phot_utils import Bandpass
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pkg_resources
+from rubin_sim.phot_utils import Bandpass
 
 __all__ = [
     "setDefaultDirs",
@@ -58,9 +59,7 @@ def findRootDir(rootDir=None):
     if rootDir is None:
         rootDir = os.getenv("SYSENG_THROUGHPUTS_DIR")
         if rootDir is None:
-            rootDir = os.path.split(
-                pkg_resources.resource_filename("syseng_throughputs", ".")
-            )[0]
+            rootDir = os.path.split(pkg_resources.resource_filename("syseng_throughputs", "."))[0]
             # Remove the last syseng_throughputs where the python lives and go to the 'components' level
             rootDir = os.path.split(rootDir)[0]
     return rootDir
@@ -86,9 +85,7 @@ def setDefaultDirs(rootDir=None):
     """
     defaultDirs = {}
     rootDir = findRootDir(rootDir)
-    defaultDirs["detector"] = os.path.join(
-        rootDir, "components/camera/detector/joint_minimum"
-    )
+    defaultDirs["detector"] = os.path.join(rootDir, "components/camera/detector/joint_minimum")
     for lens in ("lens1", "lens2", "lens3"):
         defaultDirs[lens] = os.path.join(rootDir, "components/camera", lens)
     defaultDirs["filters"] = os.path.join(rootDir, "components/camera/filters")
@@ -114,16 +111,14 @@ def _readLosses(componentDir):
     """
     lossDir = glob(os.path.join(componentDir, "*_Losses"))
     if len(lossDir) > 1:
-        errmsg = "Expect a single *_Losses subdirectory for component %s." % (
-            componentDir
-        )
+        errmsg = "Expect a single *_Losses subdirectory for component %s." % (componentDir)
         errmsg += " Found %s." % (lossDir)
         raise ValueError(errmsg)
     lossDir = lossDir[0]
     if not os.path.isdir(lossDir):
-        errmsg = (
-            "Expect %s to be a subdirectory containing loss files for component %s."
-            % (lossDir, componentDir)
+        errmsg = "Expect %s to be a subdirectory containing loss files for component %s." % (
+            lossDir,
+            componentDir,
         )
         raise ValueError(errmsg)
     lossfiles = glob(os.path.join(lossDir, "*.dat"))
@@ -160,16 +155,14 @@ def _readCoatings(componentDir):
     """
     coatingDir = glob(os.path.join(componentDir, "*_Coatings"))
     if len(coatingDir) > 1:
-        errmsg = "Expect a single *_Coatings subdirectory for component %s." % (
-            componentDir
-        )
+        errmsg = "Expect a single *_Coatings subdirectory for component %s." % (componentDir)
         errmsg += " Found %s." % (coatingDir)
         raise ValueError(errmsg)
     coatingDir = coatingDir[0]
     if not os.path.isdir(coatingDir):
-        errmsg = (
-            "Expect %s to be a subdirectory containing coating files for component %s."
-            % (coatingDir, componentDir)
+        errmsg = "Expect %s to be a subdirectory containing coating files for component %s." % (
+            coatingDir,
+            componentDir,
         )
         raise ValueError(errmsg)
     coatingfiles = glob(os.path.join(coatingDir, "*.dat"))
@@ -217,9 +210,7 @@ def buildVendorDetector(vendorDir, addLosses=True):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         qe.read_throughput(qefile)
-    qe.resample_bandpass(
-        wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
-    )
+    qe.resample_bandpass(wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP)
     if addLosses:
         loss = _readLosses(vendorDir)
         wavelength, sb = qe.multiply_throughputs(loss.wavelen, loss.sb)
@@ -227,7 +218,7 @@ def buildVendorDetector(vendorDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(qe.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if qe.sb[belowzero] < belowZeroThreshhold:
+    if np.any(qe.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in QE response significantly below zero.")
     # If they are just small errors in interpolation, set to zero.
     qe.sb[belowzero] = 0
@@ -273,15 +264,12 @@ def buildDetector(detectorDir, addLosses=True):
         tmp = os.listdir(detectorDir)
         vendorDirs = []
         for t in tmp:
-            if os.path.isdir(os.path.join(detectorDir, t)) and not t.endswith(
-                "_Losses"
-            ):
+            if os.path.isdir(os.path.join(detectorDir, t)) and not t.endswith("_Losses"):
                 vendorDirs.append(os.path.join(detectorDir, t))
         if len(vendorDirs) == 0:
             errmsg = (
                 "Could not find the files required for a single vendor "
-                "and could not find subdirectories for multiple vendors, in component %s."
-                % (detectorDir)
+                "and could not find subdirectories for multiple vendors, in component %s." % (detectorDir)
             )
             raise ValueError(errmsg)
         # There are subdirectories; we should take the minimum value of all QE curves.
@@ -340,11 +328,8 @@ def buildFilters(filterDir, addLosses=True, shiftFilters=None):
     for f in filters:
         belowzero = np.where(filters[f].sb < 0)
         # If there are QE values significantly < 0, raise an exception.
-        if np.where(filters[f].sb[belowzero] < belowZeroThreshhold)[0].size > 0:
-            raise ValueError(
-                "Found values in filter response significantly below zero in %s filter"
-                % f
-            )
+        if np.any(filters[f].sb[belowzero] < belowZeroThreshhold):
+            raise ValueError("Found values in filter response significantly below zero in %s filter" % f)
         # If they are just small errors in interpolation, set to zero.
         filters[f].sb[belowzero] = 0
     if shiftFilters is not None:
@@ -376,10 +361,8 @@ def savitzky_golay(y, window_size=31, order=3, deriv=0, rate=1):
     order_range = range(order + 1)
     half_window = (window_size - 1) // 2
     # precompute coefficients
-    b = np.asmatrix(
-        [[k**i for i in order_range] for k in range(-half_window, half_window + 1)]
-    )
-    m = np.linalg.pinv(b).A[deriv] * rate**deriv * np.math.factorial(deriv)
+    b = np.asmatrix([[k**i for i in order_range] for k in range(-half_window, half_window + 1)])
+    m = np.linalg.pinv(b).A[deriv] * rate**deriv * math.factorial(deriv)
     # pad the signal at the extremes with
     # values taken from the signal itself
     firstvals = y[0] - np.abs(y[1 : half_window + 1][::-1] - y[0])
@@ -414,17 +397,13 @@ def buildLens(lensDir, addLosses=True):
     # Read the glass base file.
     glassfile = glob(os.path.join(lensDir, "l*_Glass.dat"))
     if len(glassfile) != 1:
-        raise ValueError(
-            "Expected a single glass file in this directory, found: ", glassfile
-        )
+        raise ValueError("Expected a single glass file in this directory, found: ", glassfile)
     glassfile = glassfile[0]
     glass = Bandpass()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         glass.read_throughput(glassfile)
-    glass.resample_bandpass(
-        wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
-    )
+    glass.resample_bandpass(wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP)
     # Smooth the glass response.
     smoothSb = savitzky_golay(glass.sb, 31, 3)
     lens = Bandpass()
@@ -442,7 +421,7 @@ def buildLens(lensDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(lens.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if lens.sb[belowzero] < belowZeroThreshhold:
+    if np.any(lens.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in lens throughput significantly below zero.")
     # If they are just small errors in interpolation, set to zero.
     lens.sb[belowzero] = 0
@@ -480,9 +459,7 @@ def buildMirror(mirrorDir, addLosses=True):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         mirror.read_throughput(mirrorfile)
-    mirror.resample_bandpass(
-        wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
-    )
+    mirror.resample_bandpass(wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP)
     if addLosses:
         loss = _readLosses(mirrorDir)
         wavelen, sb = mirror.multiply_throughputs(loss.wavelen, loss.sb)
@@ -490,7 +467,7 @@ def buildMirror(mirrorDir, addLosses=True):
     # Verify that no values go significantly below zero.
     belowzero = np.where(mirror.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if mirror.sb[belowzero] < belowZeroThreshhold:
+    if np.any(mirror.sb[belowzero] < belowZeroThreshhold):
         raise ValueError("Found values in mirror response significantly below zero")
     # If they are just small errors in interpolation, set to zero.
     mirror.sb[belowzero] = 0
@@ -519,24 +496,18 @@ def readAtmosphere(atmosDir, atmosFile="pachonModtranAtm_12_aerosol.dat"):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         atmo.read_throughput(atmofile)
-    atmo.resample_bandpass(
-        wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP
-    )
+    atmo.resample_bandpass(wavelen_min=WAVELEN_MIN, wavelen_max=WAVELEN_MAX, wavelen_step=WAVELEN_STEP)
     # Verify that no values go significantly below zero.
     belowzero = np.where(atmo.sb < 0)
     # If there are QE values significantly < 0, raise an exception.
-    if atmo.sb[belowzero] < belowZeroThreshhold:
-        raise ValueError(
-            "Found values in atmospheric transmission significantly below zero"
-        )
+    if np.any(atmo.sb[belowzero] < belowZeroThreshhold):
+        raise ValueError("Found values in atmospheric transmission significantly below zero")
     # If they are just small errors in interpolation, set to zero.
     atmo.sb[belowzero] = 0
     return atmo
 
 
-def buildHardwareAndSystem(
-    defaultDirs, addLosses=True, atmosphereOverride=None, shiftFilters=None
-):
+def buildHardwareAndSystem(defaultDirs, addLosses=True, atmosphereOverride=None, shiftFilters=None):
     """
     Using directories for each component set by 'defaultDirs',
     build the system (including atmosphere) and hardware throughput curves for each filter.
@@ -583,15 +554,7 @@ def buildHardwareAndSystem(
         if np.all(atmosphere.wavelen != detector.wavelen):
             atmosphere.resample_bandpass()
     # Combine the individual components.
-    core_sb = (
-        detector.sb
-        * lens1.sb
-        * lens2.sb
-        * lens3.sb
-        * mirror1.sb
-        * mirror2.sb
-        * mirror3.sb
-    )
+    core_sb = detector.sb * lens1.sb * lens2.sb * lens3.sb * mirror1.sb * mirror2.sb * mirror3.sb
     wavelen = detector.wavelen
     hardware = {}
     system = {}
